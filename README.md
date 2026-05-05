@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./shinobu/shinobu-nobg.png" alt="Shinobu Agent" width="400">
+</p>
+
 # Shinobu Agent 🗡️
 ## Insect Hashira - Security & Safety
 
