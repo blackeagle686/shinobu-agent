@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./shinobu/shinobu-nobg.png" alt="Shinobu Agent" width="400">
+  <img src="./Shinobu.jpg" alt="Shinobu Agent" width="400">
 </p>
 
 # Shinobu Agent 🗡️
