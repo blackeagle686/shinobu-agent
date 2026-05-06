@@ -534,3 +534,14 @@ class PDFViewer(BaseTool):
             return ToolResult(success=True, output=f"📂 Opening PDF in system viewer: {path}")
         except Exception as e:
             return ToolResult(success=False, error=str(e))
+
+
+class AskUser(BaseTool):
+    name = "ask_user"
+    description = "Asks the user a specific question and waits for their input to proceed."
+
+    async def execute(self, question: str) -> ToolResult:
+        # In this environment, we return the question as the output.
+        # The loop will treat this as a completed task, and the agent will naturally
+        # wait for the next user message to continue.
+        return ToolResult(success=True, output=f"QUESTION_TO_USER: {question}")
