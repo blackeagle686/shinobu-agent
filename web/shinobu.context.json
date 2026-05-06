@@ -1,0 +1,49 @@
+{
+  "context_id": "f034d721-5f32-4faf-8085-318d60b6711f",
+  "metadata": {
+    "created_at": "2026-05-07T01:58:57.666637",
+    "updated_at": "2026-05-07T01:58:57.874668",
+    "original_prompt": "search about egypt"
+  },
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Search for information about Egypt",
+      "description": "Perform a search query to gather relevant information about Egypt, including historical, cultural, geographical, or other related topics as broadly interpreted.",
+      "priority": 1,
+      "dependencies": [],
+      "status": "pending"
+    },
+    {
+      "id": 2,
+      "title": "Summarize key findings from the search results",
+      "description": "Organize and condense the most important points gathered during the search into a clear and concise summary.",
+      "priority": 2,
+      "dependencies": [
+        1
+      ],
+      "status": "pending"
+    }
+  ],
+  "plans": [],
+  "generations": [],
+  "execution_state": {
+    "completed_steps": [],
+    "pending_steps": [
+      {
+        "id": 1,
+        "title": "Search for information about Egypt"
+      },
+      {
+        "id": 2,
+        "title": "Summarize key findings from the search results"
+      }
+    ],
+    "failed_steps": []
+  },
+  "memory": {},
+  "intent_logs": [],
+  "safety_events": [],
+  "session_context": {},
+  "automation_pipelines": []
+}
