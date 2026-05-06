@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shinobu | User Operations Agent</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="butterfly-bg" id="butterfly-container"></div>
+
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Shinobu Agent</h1>
+            <p>🦋 YOUR PERSONAL OS COMPANION</p>
+        </div>
+    </section>
+
+    <main class="app-container">
+        <aside class="sidebar glass-panel">
+            <div class="sidebar-header">
+                <h2>Butterfly Hub</h2>
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    <span>Shinobu is Online</span>
+                </div>
+            </div>
+            
+            <div class="sidebar-content">
+                <div class="info-card">
+                    <h3 style="color: var(--mint); margin-bottom: 0.5rem;">Current Session</h3>
+                    <p id="session-id" style="font-family: monospace; font-size: 0.8rem; opacity: 0.6;">Loading...</p>
+                </div>
+                <div class="info-card" style="margin-top: 2rem;">
+                    <h3 style="color: var(--purple-light); margin-bottom: 0.5rem;">Active Modules</h3>
+                    <ul style="list-style: none; font-size: 0.9rem; opacity: 0.8; display: grid; gap: 0.5rem;">
+                        <li>✨ Intent Interpreter</li>
+                        <li>📋 Task Decomposer</li>
+                        <li>🛡️ Safety Guardian</li>
+                        <li>🧠 Context Memory</li>
+                    </ul>
+                </div>
+            </div>
+        </aside>
+
+        <section class="chat-area glass-panel">
+            <div class="chat-header">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="width: 40px; height: 40px; background: linear-gradient(var(--purple), var(--pink)); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold;">S</div>
+                    <div>
+                        <h3 style="font-size: 1.1rem;">Interactive Loop</h3>
+                        <span style="font-size: 0.8rem; opacity: 0.6;">Direct System Interaction</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chat-messages">
+                <div class="message agent">
+                    Hello! I am Shinobu, your personal operations agent. How can I assist you with your OS today?
+                    <span class="ts">Just now</span>
+                </div>
+            </div>
+
+            <div class="chat-input-container">
+                <form id="chat-form" class="input-wrapper">
+                    <input type="text" id="user-input" placeholder="Type your request (e.g., 'Organize my desktop', 'Search for...')" autocomplete="off">
+                    <button type="submit" id="send-btn">Send Pulse</button>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
