@@ -11,14 +11,18 @@ async def get_shinobu_agent(on_startup_progress=None):
     await startup_phoenix(on_progress=on_startup_progress)
 
     from .cognition.brains import (
-        ShinobuThinker, ShinobuPlanner, ShinobuReflector, ShinobuGenerator,
         IntentInterpreter, TaskDecomposer, ActionPlanner, SystemBridge,
         ContextMemory, SafetyDecision, UXGenerator,
-        SearchLevelClassifier,
+        ShinobuReflector, ShinobuGenerator
     )
     from .cognition.loop import ShinobuLoop
     from .services.webbrowser import WebBrowserService
     from phoenix.framework.agent.core.profile import AgentProfile
+    
+    # Use generic brains for the base Agent requirements if needed, 
+    # but ShinobuLoop will primarily use the specialized ones.
+    from phoenix.framework.agent.core.thinker import AgentThinker
+    from phoenix.framework.agent.core.planner import AgentPlanner
 
     # Load profile
     profile_path = os.path.join(os.path.dirname(__file__), "profile.json")
@@ -30,8 +34,8 @@ async def get_shinobu_agent(on_startup_progress=None):
     agent = Agent(
         loop_cls=ShinobuLoop,
         component_factories={
-            "thinker":   lambda **ctx: ShinobuThinker(ctx["llm"]),
-            "planner":   lambda **ctx: ShinobuPlanner(ctx["llm"], ctx["tools"]),
+            "thinker":   lambda **ctx: AgentThinker(ctx["llm"]),
+            "planner":   lambda **ctx: AgentPlanner(ctx["llm"], ctx["tools"]),
             "reflector": lambda **ctx: ShinobuReflector(ctx["llm"]),
             "generator": lambda **ctx: ShinobuGenerator(ctx["llm"]),
             "loop": lambda **ctx: ShinobuLoop(
@@ -48,7 +52,6 @@ async def get_shinobu_agent(on_startup_progress=None):
                 safety_decision=SafetyDecision(),
                 ux_generator=UXGenerator(ctx["llm"], profile=profile),
                 generator=ctx.get("generator") or ShinobuGenerator(ctx["llm"]),
-                search_classifier=SearchLevelClassifier(ctx["llm"], profile=profile),
                 browser_service=browser_service,
             ),
         },
@@ -63,23 +66,23 @@ async def get_shinobu_agent(on_startup_progress=None):
         ProcessLauncher, SystemCommandBridge, AutomationPipelineBuilder,
     )
 
-    # Shared search classifier (uses the agent's LLM after construction)
-    search_classifier = agent.loop.search_classifier
-
-    # Register all 18 custom user-operations tools
+    # Register all tools
     agent.register_tool(FileReader())
     agent.register_tool(FileWriter())
     agent.register_tool(FileEditor())
     agent.register_tool(FileDeleter())
     agent.register_tool(FileSearchEngine())
+    
+    # Some tools need the LLM from the planner (which is generic but shared)
+    llm = agent.loop.planner.llm
+    
     agent.register_tool(WebSearchTool(
         browser_service=browser_service,
-        search_classifier=search_classifier,
-        llm=agent.loop.planner.llm,
+        llm=llm,
     ))
     agent.register_tool(DeepSearchTool(
         browser_service=browser_service,
-        llm=agent.loop.planner.llm,
+        llm=llm,
     ))
     agent.register_tool(BrowserController(browser_service=browser_service))
     agent.register_tool(MediaPreparer())
@@ -93,7 +96,7 @@ async def get_shinobu_agent(on_startup_progress=None):
     agent.register_tool(SystemCommandBridge())
     agent.register_tool(AutomationPipelineBuilder())
 
-    # Attach brains to agent for direct access (testing / orchestration)
+    # Attach brains to agent for direct access
     agent.intent_interpreter   = agent.loop.intent_interpreter
     agent.task_decomposer      = agent.loop.task_decomposer
     agent.action_planner       = agent.loop.action_planner
@@ -101,7 +104,6 @@ async def get_shinobu_agent(on_startup_progress=None):
     agent.context_memory       = agent.loop.context_memory
     agent.safety_decision      = agent.loop.safety_decision
     agent.ux_generator         = agent.loop.ux_generator
-    agent.search_classifier    = agent.loop.search_classifier
     agent.browser_service      = browser_service
 
     return agent
