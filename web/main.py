@@ -183,32 +183,44 @@ async def list_files(q: str = ""):
     home = os.path.expanduser("~")
     results = []
     
-    # Simple recursive walk with depth limit or just top level + some depth
-    # For now, let's just do a limited search for performance
     try:
-        for root, dirs, files in os.walk(home):
-            # Skip hidden dirs
-            dirs[:] = [d for d in dirs if not d.startswith('.')]
-            
-            # depth check (limit to 3 levels for @ performance)
-            depth = root[len(home):].count(os.sep)
-            if depth > 2:
-                dirs[:] = []
-                continue
-
-            for name in dirs + files:
-                if q.lower() in name.lower():
-                    full_path = os.path.join(root, name)
-                    rel_path = os.path.relpath(full_path, home)
-                    results.append({
-                        "name": name,
-                        "path": full_path,
-                        "rel_path": f"~/{rel_path}",
-                        "is_dir": os.path.isdir(full_path)
-                    })
-                if len(results) > 20: break
-            if len(results) > 20: break
-    except Exception: pass
+        # If no query, just show top-level + Downloads for speed
+        search_paths = [home]
+        if q:
+            # Deep walk but limited
+            for root, dirs, files in os.walk(home):
+                dirs[:] = [d for d in dirs if not d.startswith('.')]
+                depth = root[len(home):].count(os.sep)
+                if depth > 1: # Limit to 2 levels deep for search
+                    dirs[:] = []
+                
+                for name in dirs + files:
+                    if q.lower() in name.lower():
+                        full_path = os.path.join(root, name)
+                        rel_path = os.path.relpath(full_path, home)
+                        results.append({
+                            "name": name,
+                            "path": full_path,
+                            "rel_path": f"~/{rel_path}",
+                            "is_dir": os.path.isdir(full_path)
+                        })
+                    if len(results) >= 20: break
+                if len(results) >= 20: break
+        else:
+            # Shallow scan of top level
+            with os.scandir(home) as it:
+                for entry in it:
+                    if not entry.name.startswith('.'):
+                        results.append({
+                            "name": entry.name,
+                            "path": entry.path,
+                            "rel_path": f"~/{entry.name}",
+                            "is_dir": entry.is_dir()
+                        })
+                    if len(results) >= 15: break
+    except Exception as e:
+        print(f"File API Error: {e}")
+    
     return results
 
 @app.post("/api/upload")

@@ -53,9 +53,14 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (lastAt !== -1 && (lastAt === 0 || val[lastAt - 1] === ' ')) {
           const query = val.substring(lastAt + 1);
-          if (query.length >= 0) {
+          console.log(`[@ Mention] Triggered with query: "${query}"`);
+          
+          try {
               const files = await fetch(`/api/files?q=${encodeURIComponent(query)}`).then(r => r.json());
+              console.log(`[@ Mention] Found ${files.length} matches`);
               showMentionDropdown(files, lastAt);
+          } catch (err) {
+              console.error(`[@ Mention] Fetch failed:`, err);
           }
       } else {
           mentionDropdown.style.display = 'none';
