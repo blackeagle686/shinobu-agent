@@ -14,13 +14,18 @@ async def get_shinobu_agent(on_startup_progress=None):
         ShinobuThinker, ShinobuPlanner, ShinobuReflector, ShinobuGenerator,
         IntentInterpreter, TaskDecomposer, ActionPlanner, SystemBridge,
         ContextMemory, SafetyDecision, UXGenerator,
+        SearchLevelClassifier,
     )
     from .cognition.loop import ShinobuLoop
+    from .services.webbrowser import WebBrowserService
     from phoenix.framework.agent.core.profile import AgentProfile
 
     # Load profile
     profile_path = os.path.join(os.path.dirname(__file__), "profile.json")
     profile = AgentProfile.from_json(profile_path)
+
+    # Shared service instances
+    browser_service = WebBrowserService()
 
     agent = Agent(
         loop_cls=ShinobuLoop,
@@ -43,6 +48,8 @@ async def get_shinobu_agent(on_startup_progress=None):
                 safety_decision=SafetyDecision(),
                 ux_generator=UXGenerator(ctx["llm"], profile=profile),
                 generator=ctx.get("generator") or ShinobuGenerator(ctx["llm"]),
+                search_classifier=SearchLevelClassifier(ctx["llm"], profile=profile),
+                browser_service=browser_service,
             ),
         },
         profile=profile,
@@ -56,15 +63,25 @@ async def get_shinobu_agent(on_startup_progress=None):
         ProcessLauncher, SystemCommandBridge, AutomationPipelineBuilder,
     )
 
+    # Shared search classifier (uses the agent's LLM after construction)
+    search_classifier = agent.loop.search_classifier
+
     # Register all 18 custom user-operations tools
     agent.register_tool(FileReader())
     agent.register_tool(FileWriter())
     agent.register_tool(FileEditor())
     agent.register_tool(FileDeleter())
     agent.register_tool(FileSearchEngine())
-    agent.register_tool(WebSearchTool())
-    agent.register_tool(DeepSearchTool())
-    agent.register_tool(BrowserController())
+    agent.register_tool(WebSearchTool(
+        browser_service=browser_service,
+        search_classifier=search_classifier,
+        llm=agent.loop.planner.llm,
+    ))
+    agent.register_tool(DeepSearchTool(
+        browser_service=browser_service,
+        llm=agent.loop.planner.llm,
+    ))
+    agent.register_tool(BrowserController(browser_service=browser_service))
     agent.register_tool(MediaPreparer())
     agent.register_tool(TaskManagerTool())
     agent.register_tool(ReminderSystem())
@@ -84,5 +101,7 @@ async def get_shinobu_agent(on_startup_progress=None):
     agent.context_memory       = agent.loop.context_memory
     agent.safety_decision      = agent.loop.safety_decision
     agent.ux_generator         = agent.loop.ux_generator
+    agent.search_classifier    = agent.loop.search_classifier
+    agent.browser_service      = browser_service
 
     return agent
