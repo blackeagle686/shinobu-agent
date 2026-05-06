@@ -33,10 +33,11 @@ async def test_agent():
 if __name__ == "__main__":
     # Ensure OPENAI_API_KEY is available or it might fail if not properly loaded
     from dotenv import load_dotenv
-    # Try loading from the global .shinobu env just in case
-    global_env = os.path.expanduser("~/.shinobu/.env")
-    if os.path.exists(global_env):
-        load_dotenv(global_env, override=True)
+    # Load .env from Giyu (shared credentials)
+    giyu_env = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "Giyu", ".env"))
+    if os.path.exists(giyu_env):
+        load_dotenv(giyu_env, override=True)
     else:
+        # Fallback to current dir or global
         load_dotenv(override=True)
     asyncio.run(test_agent())
