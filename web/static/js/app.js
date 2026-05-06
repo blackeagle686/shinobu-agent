@@ -16,6 +16,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const attachBtn = document.getElementById('attach-btn');
   const fileUpload = document.getElementById('file-upload');
   const previewTemplate = document.getElementById('file-preview-template');
+  const previewModal = document.getElementById('file-preview-modal');
+  const previewModalBackdrop = document.getElementById('file-preview-modal-backdrop');
+  const previewModalBody = document.getElementById('file-preview-modal-body');
+  const previewModalTitle = document.getElementById('file-preview-modal-title');
+  const previewModalClose = document.getElementById('file-preview-modal-close');
 
   const modeSelector = document.getElementById('mode-selector');
   let currentMode = modeSelector ? modeSelector.value : 'auto';
@@ -26,6 +31,42 @@ document.addEventListener('DOMContentLoaded', () => {
           currentMode = modeSelector.value;
       });
   }
+
+  function closePreviewModal() {
+      if (!previewModal) return;
+      previewModal.classList.remove('is-open');
+      previewModal.setAttribute('aria-hidden', 'true');
+      if (previewModalBody) previewModalBody.innerHTML = '';
+  }
+
+  async function openPreviewModal(path, filename) {
+      if (!previewModal || !previewModalBody) return;
+      const ext = (filename.split('.').pop() || '').toLowerCase();
+      const viewUrl = `/api/view-file?path=${encodeURIComponent(path)}`;
+      previewModalTitle.textContent = filename || 'File Preview';
+      previewModal.classList.add('is-open');
+      previewModal.setAttribute('aria-hidden', 'false');
+
+      if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext)) {
+          previewModalBody.innerHTML = `<img src="${viewUrl}" alt="${filename}">`;
+      } else if (ext === 'pdf') {
+          previewModalBody.innerHTML = `<embed src="${viewUrl}" type="application/pdf">`;
+      } else {
+          try {
+              const text = await fetch(viewUrl).then(r => r.text());
+              previewModalBody.innerHTML = `<pre class="file-preview-modal-text"></pre>`;
+              previewModalBody.querySelector('.file-preview-modal-text').textContent = text;
+          } catch (_) {
+              previewModalBody.innerHTML = `<div style="padding:1.2rem;color:var(--text-secondary);">Preview not available.</div>`;
+          }
+      }
+  }
+
+  if (previewModalClose) previewModalClose.addEventListener('click', closePreviewModal);
+  if (previewModalBackdrop) previewModalBackdrop.addEventListener('click', closePreviewModal);
+  document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closePreviewModal();
+  });
 
   function createLivePanel() {
       const panel = document.createElement('div');
@@ -197,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       card.querySelector('.close-preview').onclick = () => card.remove();
-      card.querySelector('.open-file-btn').onclick = () => window.open(viewUrl, '_blank');
+      card.querySelector('.open-file-btn').onclick = () => openPreviewModal(path, filename);
       card.querySelector('.save-as-btn').onclick = () => {
           const newName = prompt('Enter new filename/path:', filename);
           if (newName) {
