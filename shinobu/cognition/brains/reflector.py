@@ -9,7 +9,7 @@ class ShinobuReflector(Reflector):
 
     # Success patterns (no LLM needed)
     _SUCCESS_RE = re.compile(
-        r'(?:successfully|created|updated|applied|done|complete|opened|installed|ran|executed)',
+        r'(?:successfully|created|updated|applied|done|complete|opened|installed|ran|executed|QUESTION_TO_USER)',
         re.IGNORECASE
     )
     _ERROR_RE = re.compile(r'(?:^ERROR|Traceback|exception|failed|not found)', re.IGNORECASE)
