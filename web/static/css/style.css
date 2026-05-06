@@ -484,9 +484,34 @@ a { color: inherit; text-decoration: none; }
 .empty-state .emoji { font-size: 5rem; margin-bottom: 1rem; filter: grayscale(0.3); }
 .empty-state p { color: var(--text-muted); font-size: 1.1rem; }
 
-/* ═══════════════════════════════════════════════════
-   RESPONSIVE
-   ═══════════════════════════════════════════════════ */
+/* ─── Mode Switcher ─── */
+.mode-switcher {
+    display: flex;
+    background: rgba(0,0,0,0.3);
+    border-radius: 12px;
+    padding: 3px;
+    border: 1px solid var(--glass-border);
+    gap: 2px;
+}
+.mode-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 9px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    color: var(--text-secondary);
+    border: none;
+    background: transparent;
+}
+.mode-btn.active {
+    background: var(--purple);
+    color: white;
+    box-shadow: 0 4px 10px var(--purple-glow);
+}
+.mode-btn:not(.active):hover {
+    background: var(--glass-hover);
+}
 @media (max-width: 900px) {
   .chat-layout, .dashboard-layout { grid-template-columns: 1fr; }
   .nav-bar { display: none; }
