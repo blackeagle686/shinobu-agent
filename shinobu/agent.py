@@ -52,6 +52,7 @@ async def get_shinobu_agent(on_startup_progress=None):
                 safety_decision=SafetyDecision(),
                 ux_generator=UXGenerator(ctx["llm"], profile=profile),
                 generator=ctx.get("generator") or ShinobuGenerator(ctx["llm"]),
+                search_classifier=SearchLevelClassifier(ctx["llm"], profile=profile),
                 browser_service=browser_service,
             ),
         },
@@ -104,6 +105,7 @@ async def get_shinobu_agent(on_startup_progress=None):
     agent.context_memory       = agent.loop.context_memory
     agent.safety_decision      = agent.loop.safety_decision
     agent.ux_generator         = agent.loop.ux_generator
+    agent.search_classifier    = agent.loop.search_classifier
     agent.browser_service      = browser_service
 
     return agent
