@@ -6,8 +6,11 @@ Shinobu Prompts — centralised prompt templates for all cognition modules.
 # Loop / Fast Answer
 # ---------------------------------------------------------------------------
 
+FAST_ANSWER_SYSTEM = "You are SHINOBU. Give a concise, direct answer to the user's question."
+
+
 def build_fast_answer_prompt(context: str, user_prompt: str, profile_info: str = "") -> str:
-    system = f"You are SHINOBU. Give a concise, direct answer to the user's question."
+    system = FAST_ANSWER_SYSTEM
     if profile_info:
         system += f"\n\nYour Profile:\n{profile_info}"
     return f"{system}\n\nContext:\n{context}\n\nUser: {user_prompt}"
