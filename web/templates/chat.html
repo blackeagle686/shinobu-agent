@@ -40,6 +40,10 @@
                     <div class="reply-preview-content" id="reply-preview-text">Replying to...</div>
                     <button class="cancel-reply" id="cancel-reply">×</button>
                 </div>
+                
+                <!-- File Mention Dropdown -->
+                <div id="file-mention-dropdown" class="file-mention-dropdown" style="display: none;"></div>
+
                 <form id="chat-form" class="input-row">
                     <div class="mode-select-wrapper">
                         <select id="mode-selector" class="mode-select-dropdown">
@@ -49,6 +53,12 @@
                             <option value="agent">Agent</option>
                         </select>
                     </div>
+                    
+                    <button type="button" class="attach-btn" id="attach-btn" title="Attach File">
+                        <i class="bi bi-paperclip"></i>
+                    </button>
+                    <input type="file" id="file-upload" style="display: none;">
+
                     <input type="text" id="user-input" placeholder="Enter natural language command..." autocomplete="off">
                     <button type="submit" class="send-btn">
                         <span>Execute</span>
@@ -58,6 +68,23 @@
             </div>
         </main>
     </div>
+
+    <!-- File Preview Template -->
+    <template id="file-preview-template">
+        <div class="file-preview-card">
+            <div class="file-preview-header">
+                <span class="file-name">filename.pdf</span>
+                <button class="close-preview">×</button>
+            </div>
+            <div class="file-preview-body">
+                <!-- PDF or image will be injected here -->
+            </div>
+            <div class="file-preview-actions">
+                <button class="open-file-btn">Open File</button>
+                <button class="save-as-btn">Save As...</button>
+            </div>
+        </div>
+    </template>
 
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="/static/js/app.js"></script>
