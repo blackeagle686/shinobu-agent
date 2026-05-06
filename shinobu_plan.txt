@@ -330,4 +330,5 @@ Agent	Role
 🦋 Shinobu	User interface + personal assistant
 
 
-make shiobu read the apps installed for office work like liberio office, microsoft office, w
+make shiobu read the apps installed for office work like liberio office, microsoft office,WPS office 
+and check default app setting for document editing and opening 
