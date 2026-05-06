@@ -13,8 +13,10 @@ class IntentInterpreter:
         self.profile = profile
 
     async def interpret(self, user_input: str) -> dict:
+        name = self.profile.identity.name if self.profile else "Shinobu"
+        role = self.profile.identity.role if self.profile else "personal OS assistant"
         prompt = (
-            f"You are {self.profile.identity.name if self.profile else 'Shinobu'}, a friendly personal OS assistant.\n"
+            f"You are {name}, a friendly {role}.\n"
             f"Analyze the following user request and return a structured JSON with:\n"
             f"- 'intent': primary intent (e.g. file_operation, web_search, productivity, system_control, media)\n"
             f"- 'entities': extracted entities (file names, apps, topics, URLs)\n"
