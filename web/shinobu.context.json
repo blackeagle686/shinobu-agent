@@ -1,0 +1,62 @@
+{
+  "context_id": "ee416884-d023-4498-a552-89f8dd5c7964",
+  "metadata": {
+    "created_at": "2026-05-06T18:40:55.115493",
+    "updated_at": "2026-05-06T18:40:55.116223",
+    "original_prompt": "~/Downloads/jpn.jpg fill this file with information about japan"
+  },
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Read image file",
+      "description": "Open and analyze the contents of ~/Downloads/jpn.jpg to understand its current state and whether it is an editable format.",
+      "priority": 1,
+      "dependencies": [],
+      "status": "pending"
+    },
+    {
+      "id": 2,
+      "title": "Research information about Japan",
+      "description": "Gather relevant and accurate facts, cultural elements, or data related to Japan for inclusion in the image file.",
+      "priority": 1,
+      "dependencies": [],
+      "status": "pending"
+    },
+    {
+      "id": 3,
+      "title": "Modify image with Japan-related content",
+      "description": "Overlay, embed, or otherwise integrate the researched information into the image file at ~/Downloads/jpn.jpg.",
+      "priority": 2,
+      "dependencies": [
+        1,
+        2
+      ],
+      "status": "pending"
+    }
+  ],
+  "plans": [],
+  "generations": [],
+  "execution_state": {
+    "completed_steps": [],
+    "pending_steps": [
+      {
+        "id": 1,
+        "title": "Read image file"
+      },
+      {
+        "id": 2,
+        "title": "Research information about Japan"
+      },
+      {
+        "id": 3,
+        "title": "Modify image with Japan-related content"
+      }
+    ],
+    "failed_steps": []
+  },
+  "memory": {},
+  "intent_logs": [],
+  "safety_events": [],
+  "session_context": {},
+  "automation_pipelines": []
+}
