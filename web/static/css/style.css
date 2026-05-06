@@ -307,8 +307,9 @@ a {
   inset: 0;
   z-index: 0;
   background: url('../img/hero2.jpg') center/cover no-repeat;
-  filter: brightness(0.55) saturate(1.2);
-  animation: heroZoom 30s ease-in-out infinite alternate;
+  will-change: transform;
+  transform: translateZ(0);
+  animation: heroZoom 30s linear infinite alternate;
 }
 
 @keyframes heroZoom {
