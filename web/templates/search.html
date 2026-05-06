@@ -32,21 +32,19 @@
                         </svg>
                     </div>
                     <input type="text" id="search-input" placeholder="Ask Shinobu to search anything..." autocomplete="off">
-                    <button type="button" id="search-submit" class="search-submit-btn">
-                        <span>Search</span>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-                    </button>
-                </div>
-
-                <!-- Level Selector -->
-                <div class="level-select-wrapper" style="margin-top: 1rem; display: flex; align-items: center; gap: 10px;">
-                    <label for="level-selector" style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">Strategy:</label>
-                    <select id="level-selector" class="mode-select-dropdown" style="flex: 1; padding: 10px 15px;">
-                        <option value="auto" selected>Auto — Shinobu decides</option>
-                        <option value="fast">Fast — Open instantly</option>
-                        <option value="mid">Mid — Browse results</option>
-                        <option value="deep">Deep — Research & analyze</option>
-                    </select>
+                    
+                    <div class="search-actions-group">
+                        <select id="level-selector" class="mode-select-dropdown search-strategy-select">
+                            <option value="auto" selected>Auto</option>
+                            <option value="fast">Fast</option>
+                            <option value="mid">Mid</option>
+                            <option value="deep">Deep</option>
+                        </select>
+                        <button type="button" id="search-submit" class="search-submit-btn">
+                            <span>Search</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
 
