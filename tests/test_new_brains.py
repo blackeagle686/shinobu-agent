@@ -15,6 +15,13 @@ async def test_agent():
     agent = await get_shinobu_agent()
     print("Agent initialized.")
     
+    # Initialize LLM
+    try:
+        if not agent.loop.planner.llm.client:
+            await agent.loop.planner.llm.init()
+    except Exception as e:
+        print(f"LLM init note: {e}")
+    
     memory = HybridMemory()
     session_id = "test_session"
     
