@@ -334,4 +334,9 @@ make shiobu read the apps installed for office work like liberio office, microso
 and check default app setting for document editing and opening and and add it's updates there and make user show this operation and 
 open pdf viewer for opening the pdf files the default pdf viewer of the system should be used for opening the pdf files and make user shwo this operation too 
 
-in the web view make 
+in the web view make sure the pdf file when open it should be opend in the default pdf viewer of the system and make user show this operation too  
+in the web view shiobu should have options to make user select the default pdf viewer for opening the pdf files 
+and when the user 
+
+history to the chats 
+audio services tts, stt using gtts, 
