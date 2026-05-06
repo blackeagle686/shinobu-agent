@@ -335,8 +335,10 @@ Update UI:
  - this for the user to select files and folders to work with
  - in chat.html make attachtmetn button for upload new files to handle with files (pdfs, docs, excel, txt, .md, .svg )
  - make agent ask user where to save the new , edited, uploaded files if not save in defult Downloads/shinobu 
- - 
-
+ - make agent show the pdf files as embeded in the chat window 
+ - add perview template that preview the uploaded file in the chat window
+ - the preview should be like the preview of the uploaded file in the chat window
+ - preview the edited or 
 
 
 
