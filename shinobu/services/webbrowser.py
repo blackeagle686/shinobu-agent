@@ -164,6 +164,19 @@ def clean_ddg_url(url: str) -> str:
     return url
 
 
+def clean_yahoo_url(url: str) -> str:
+    """Extract real target URL from Yahoo redirect links."""
+    if not url:
+        return ""
+    if "RU=" in url:
+        from urllib.parse import unquote
+        import re
+        m = re.search(r"RU=([^/]+)", url)
+        if m:
+            return unquote(m.group(1))
+    return url
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # WebBrowserService
 # ─────────────────────────────────────────────────────────────────────────────
@@ -308,40 +321,69 @@ class WebBrowserService:
             # Navigate to DuckDuckGo (Full version for rich results)
             await page.goto(duckduckgo_url(query, lite=False), timeout=int(self._TIMEOUT * 1000))
             
-            # Wait for modern results to load
+            # Wait for modern results to load or bot challenge
             try:
-                await page.wait_for_selector("[data-testid='result'], .result", timeout=5000)
+                await page.wait_for_selector("[data-testid='result'], article, .result, .anomaly-modal__modal", timeout=5000)
             except: pass
 
-            # Extract search results with resilient selectors
-            results = await page.evaluate("""() => {
-                const items = [];
-                // Modern DDG selectors + legacy fallbacks
-                const containers = document.querySelectorAll('[data-testid="result"], article, .result');
+            # Check for bot challenge
+            if await page.query_selector(".anomaly-modal__modal"):
+                logger.warning("DuckDuckGo bot challenge detected in Playwright, trying Yahoo...")
+                # Switch to Yahoo in the same page
+                await page.goto(f"https://search.yahoo.com/search?p={quote_plus(query)}", timeout=int(self._TIMEOUT * 1000))
+                await page.wait_for_load_state("domcontentloaded")
                 
-                containers.forEach((el, i) => {
-                    if (items.length >= 10) return;
-                    const titleEl = el.querySelector('[data-testid="result-title-a"], h2 a, .result__a');
-                    const snippetEl = el.querySelector('[data-testid="result-snippet"], .result__snippet, .snippet');
-                    const urlEl = el.querySelector('[data-testid="result-extras-url-link"], .result__url, .url');
-                    const imgEl = el.querySelector('img[data-testid="result-image"], .tile--img__img, img');
+                # Extract from Yahoo
+                results = await page.evaluate("""() => {
+                    const items = [];
+                    const containers = document.querySelectorAll('.algo-sr, .dd.algo');
+                    containers.forEach((el, i) => {
+                        if (items.length >= 10) return;
+                        const titleEl = el.querySelector('h3 a');
+                        const snippetEl = el.querySelector('.compText, .st');
+                        if (titleEl && titleEl.href) {
+                            items.push({
+                                index: items.length + 1,
+                                title: titleEl.textContent.trim(),
+                                url: titleEl.href,
+                                image: null,
+                                snippet: snippetEl ? snippetEl.textContent.trim() : '',
+                                display_url: (new URL(titleEl.href)).hostname
+                            });
+                        }
+                    });
+                    return items;
+                }""")
+            else:
+                # Extract search results with resilient selectors
+                results = await page.evaluate("""() => {
+                    const items = [];
+                    // Modern DDG selectors + legacy fallbacks
+                    const containers = document.querySelectorAll('[data-testid="result"], article, .result');
                     
-                    if (titleEl && titleEl.href) {
-                        const rawUrl = titleEl.href;
-                        if (rawUrl.includes('duckduckgo.com/y.js')) return;
+                    containers.forEach((el, i) => {
+                        if (items.length >= 10) return;
+                        const titleEl = el.querySelector('[data-testid="result-title-a"], h2 a, .result__a');
+                        const snippetEl = el.querySelector('[data-testid="result-snippet"], .result__snippet, .snippet');
+                        const urlEl = el.querySelector('[data-testid="result-extras-url-link"], .result__url, .url');
+                        const imgEl = el.querySelector('img[data-testid="result-image"], .tile--img__img, img');
                         
-                        items.push({
-                            index: items.length + 1,
-                            title: titleEl.textContent.trim(),
-                            url: rawUrl,
-                            image: imgEl ? imgEl.src : null,
-                            snippet: snippetEl ? snippetEl.textContent.trim() : '',
-                            display_url: urlEl ? urlEl.textContent.trim() : ''
-                        });
-                    }
-                });
-                return items;
-            }""")
+                        if (titleEl && titleEl.href) {
+                            const rawUrl = titleEl.href;
+                            if (rawUrl.includes('duckduckgo.com/y.js')) return;
+                            
+                            items.push({
+                                index: items.length + 1,
+                                title: titleEl.textContent.trim(),
+                                url: rawUrl,
+                                image: imgEl ? imgEl.src : null,
+                                snippet: snippetEl ? snippetEl.textContent.trim() : '',
+                                display_url: urlEl ? urlEl.textContent.trim() : ''
+                            });
+                        }
+                    });
+                    return items;
+                }""")
 
             # Step 2: Clean URLs and Deduplicate
             seen_urls = set()
@@ -372,7 +414,7 @@ class WebBrowserService:
             return await self._mid_search_httpx(query)
 
     async def _mid_search_httpx(self, query: str) -> Dict[str, Any]:
-        """Mid Search fallback via multiple engines (DDG -> Google) — extremely reliable."""
+        """Mid Search fallback via multiple engines (DDG -> Yahoo -> Google) — extremely reliable."""
         # ── Tier 1: DuckDuckGo Library ──
         try:
             from duckduckgo_search import DDGS
@@ -398,7 +440,44 @@ class WebBrowserService:
         except Exception as e:
             logger.warning(f"DDGS library search failed: {e}")
 
-        # ── Tier 2: Google Search (Mobile Fallback) ──
+        # ── Tier 2: Yahoo Search (Reliable Scraping) ──
+        try:
+            import httpx
+            from bs4 import BeautifulSoup
+            yahoo_url = f"https://search.yahoo.com/search?p={quote_plus(query)}"
+            async with httpx.AsyncClient(headers=self._HEADERS, timeout=self._TIMEOUT, follow_redirects=True) as client:
+                resp = await client.get(yahoo_url)
+                resp.raise_for_status()
+            
+            soup = BeautifulSoup(resp.text, "lxml")
+            results = []
+            for g in soup.select(".algo-sr, .dd.algo"):
+                if len(results) >= 10: break
+                link = g.select_one("a")
+                title = g.select_one("h3")
+                snippet = g.select_one(".compText, .st")
+                
+                if link and title:
+                    raw_url = link.get("href")
+                    url = clean_yahoo_url(raw_url)
+                    if not url.startswith("http"): continue
+                    from urllib.parse import urlparse
+                    domain = urlparse(url).netloc
+                    results.append({
+                        "index": len(results) + 1,
+                        "title": title.get_text(strip=True),
+                        "url": url,
+                        "snippet": snippet.get_text(strip=True) if snippet else "",
+                        "display_url": domain,
+                        "favicon": f"https://www.google.com/s2/favicons?sz=64&domain_url={domain}",
+                        "image": None
+                    })
+            if results:
+                return {"success": True, "action": "mid_search", "engine": "yahoo_fallback", "query": query, "result_count": len(results), "results": results}
+        except Exception as e:
+            logger.warning(f"Yahoo fallback search failed: {e}")
+
+        # ── Tier 3: Google Search (Mobile Fallback) ──
         try:
             import httpx
             from bs4 import BeautifulSoup
