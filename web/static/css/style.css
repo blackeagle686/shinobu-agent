@@ -489,10 +489,10 @@ a { color: inherit; text-decoration: none; }
     position: absolute;
     inset: 0;
     background: url('../img/hero.jpg') center/cover no-repeat;
-    opacity: 0.12;
-    z-index: -1;
-    filter: saturate(1.5) blur(2px);
-    animation: chatBgBreath 20s ease-in-out infinite alternate;
+    opacity: 0.1;
+    z-index: 0; /* Move to 0 to stay above parent bg but below content */
+    filter: saturate(1.2); /* Remove blur for performance */
+    animation: chatBgBreath 30s ease-in-out infinite alternate;
 }
 
 @keyframes chatBgBreath {
