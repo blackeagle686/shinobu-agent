@@ -850,6 +850,24 @@
     color: var(--text-secondary);
 }
 
+.deep-page-section {
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.deep-page-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.deep-page-section h3 {
+    color: var(--pink-light);
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
 .deep-body h1, .deep-body h2, .deep-body h3 {
     color: var(--text);
     margin: 1.5rem 0 0.75rem 0;
