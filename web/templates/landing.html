@@ -17,11 +17,23 @@
     <div class="hero-content">
       <h1 class="hero-title">Shinobu</h1>
       <p class="hero-subtitle">🦋 The Winged Interface of Hashira-OS</p>
-      <div class="cta-group">
-        <a href="/chat" class="btn btn-primary"><i class="bi bi-chat-dots"></i> Enter Operation Chat</a>
-        <a href="/search" class="btn btn-glass"><i class="bi bi-search"></i> 3-Level Search</a>
-        <a href="/results" class="btn btn-glass"><i class="bi bi-speedometer2"></i> Live Dashboards</a>
+      <div class="cta-group" style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-top: 2rem;">
+        <select id="navigation-selector" class="mode-select-dropdown" style="padding: 12px 20px; font-size: 1rem; min-width: 200px;">
+          <option value="/chat">Operation Chat</option>
+          <option value="/search">3-Level Search</option>
+          <option value="/results">Live Dashboards</option>
+          <option value="/analysis">System Analytics</option>
+        </select>
+        <button id="enter-btn" class="btn btn-primary" style="padding: 12px 30px; font-weight: 700; border-radius: var(--radius-md);">
+          <i class="bi bi-box-arrow-in-right"></i> Initialize
+        </button>
       </div>
+      <script>
+        document.getElementById('enter-btn').addEventListener('click', () => {
+          const path = document.getElementById('navigation-selector').value;
+          window.location.href = path;
+        });
+      </script>
       <div style="margin-top: 4rem; animation: fadeIn 2s ease-out both 1s;">
           <p style="font-size: 0.8rem; letter-spacing: 2px; opacity: 0.5; text-transform: uppercase;">Scroll to discover features</p>
           <div style="width: 1px; height: 50px; background: var(--grad-hero); margin: 1rem auto; opacity: 0.5;"></div>
