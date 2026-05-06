@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shinobu | User Operations Agent</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .landing-hero {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: url('/static/img/hero.jpg') center/cover no-repeat;
+            position: relative;
+            text-align: center;
+        }
+        .landing-hero::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle, rgba(30, 31, 41, 0.2) 0%, var(--darker) 90%);
+            z-index: 1;
+        }
+        .hero-content {
+            position: relative;
+            z-index: 10;
+        }
+        .cta-buttons {
+            display: flex;
+            gap: 2rem;
+            margin-top: 3rem;
+            z-index: 10;
+        }
+        .btn-large {
+            padding: 1.2rem 2.5rem;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            text-decoration: none;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+        .btn-primary { background: var(--purple); color: white; border: 2px solid var(--purple); }
+        .btn-secondary { background: var(--glass); color: white; border: 2px solid var(--glass-border); backdrop-filter: blur(10px); }
+        
+        .btn-large:hover { transform: scale(1.05) translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.4); }
+    </style>
+</head>
+<body>
+    <div class="butterfly-bg" id="butterfly-container"></div>
+    
+    <section class="landing-hero">
+        <div class="hero-content">
+            <h1 style="font-size: 6rem; margin-bottom: 0.5rem; letter-spacing: -2px;">Shinobu Agent</h1>
+            <p style="font-size: 1.8rem; color: var(--mint); letter-spacing: 4px; font-weight: 300;">THE WINGED INTERFACE OF HASHIRA-OS</p>
+            
+            <div class="cta-buttons">
+                <a href="/chat" class="btn-large btn-primary">
+                    <span>✨ Enter Operation Chat</span>
+                </a>
+                <a href="/results" class="btn-large btn-secondary">
+                    <span>📊 System Dashboards</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // Butterfly generation logic
+        const container = document.getElementById('butterfly-container');
+        for (let i = 0; i < 20; i++) {
+            const b = document.createElement('div');
+            b.className = 'butterfly';
+            b.style.left = Math.random() * 100 + 'vw';
+            b.style.top = Math.random() * 100 + 'vh';
+            b.style.animationDelay = Math.random() * 5 + 's';
+            container.appendChild(b);
+        }
+    </script>
+</body>
+</html>
