@@ -12,6 +12,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const sessionId = 'shinobu_' + Math.random().toString(36).substr(2, 8);
   if (sessionEl) sessionEl.textContent = sessionId;
 
+  const mentionDropdown = document.getElementById('file-mention-dropdown');
+  const attachBtn = document.getElementById('attach-btn');
+  const fileUpload = document.getElementById('file-upload');
+  const previewTemplate = document.getElementById('file-preview-template');
+
   const modeSelector = document.getElementById('mode-selector');
   let currentMode = modeSelector ? modeSelector.value : 'auto';
 
@@ -40,6 +45,109 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   cancelReplyBtn.addEventListener('click', clearReply);
+
+  // ─── FILE MENTION (@) LOGIC ───
+  userInput.addEventListener('input', async (e) => {
+      const val = userInput.value;
+      const lastAt = val.lastIndexOf('@');
+      
+      if (lastAt !== -1 && (lastAt === 0 || val[lastAt - 1] === ' ')) {
+          const query = val.substring(lastAt + 1);
+          if (query.length >= 0) {
+              const files = await fetch(`/api/files?q=${encodeURIComponent(query)}`).then(r => r.json());
+              showMentionDropdown(files, lastAt);
+          }
+      } else {
+          mentionDropdown.style.display = 'none';
+      }
+  });
+
+  function showMentionDropdown(files, atIndex) {
+      if (!files.length) {
+          mentionDropdown.style.display = 'none';
+          return;
+      }
+      
+      mentionDropdown.innerHTML = '';
+      files.forEach(file => {
+          const item = document.createElement('div');
+          item.className = 'file-mention-item';
+          item.innerHTML = `
+              <i class="bi ${file.is_dir ? 'bi-folder' : 'bi-file-earmark-text'}"></i>
+              <div style="display:flex; flex-direction:column;">
+                  <span style="font-weight:600; font-size:0.85rem;">${file.name}</span>
+                  <span class="file-path">${file.rel_path}</span>
+              </div>
+          `;
+          item.onclick = () => {
+              const before = userInput.value.substring(0, atIndex);
+              const after = userInput.value.substring(userInput.selectionStart);
+              userInput.value = before + file.rel_path + ' ' + after;
+              mentionDropdown.style.display = 'none';
+              userInput.focus();
+          };
+          mentionDropdown.appendChild(item);
+      });
+      mentionDropdown.style.display = 'block';
+  }
+
+  // ─── FILE UPLOAD LOGIC ───
+  attachBtn.addEventListener('click', () => fileUpload.click());
+
+  fileUpload.addEventListener('change', async () => {
+      if (!fileUpload.files.length) return;
+      
+      const file = fileUpload.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+
+      addMessage(`Uploading file: <b>${file.name}</b>...`, 'user');
+
+      try {
+          const res = await fetch('/api/upload', {
+              method: 'POST',
+              body: formData
+          }).then(r => r.json());
+
+          if (res.success) {
+              const msg = addMessage(`Attached: <b>${file.name}</b>`, 'agent');
+              addFilePreview(msg, res.path, file.name);
+          }
+      } catch (err) {
+          addMessage('Failed to upload file.', 'agent');
+      }
+      fileUpload.value = '';
+  });
+
+  function addFilePreview(messageDiv, path, filename) {
+      const clone = previewTemplate.content.cloneNode(true);
+      const card = clone.querySelector('.file-preview-card');
+      card.querySelector('.file-name').textContent = filename;
+      
+      const body = card.querySelector('.file-preview-body');
+      const ext = filename.split('.').pop().toLowerCase();
+      const viewUrl = `/api/view-file?path=${encodeURIComponent(path)}`;
+
+      if (['jpg', 'jpeg', 'png', 'gif', 'svg'].includes(ext)) {
+          body.innerHTML = `<img src="${viewUrl}" alt="${filename}">`;
+      } else if (ext === 'pdf') {
+          body.innerHTML = `<embed src="${viewUrl}" type="application/pdf">`;
+      } else {
+          body.innerHTML = `<div style="padding:2rem; color:var(--text-secondary);"><i class="bi bi-file-earmark-text" style="font-size:2rem;"></i><br>Preview not available for .${ext} files</div>`;
+      }
+
+      card.querySelector('.close-preview').onclick = () => card.remove();
+      card.querySelector('.open-file-btn').onclick = () => window.open(viewUrl, '_blank');
+      card.querySelector('.save-as-btn').onclick = () => {
+          const newName = prompt('Enter new filename/path:', filename);
+          if (newName) {
+              userInput.value = `save ${filename} as ${newName}`;
+              chatForm.dispatchEvent(new Event('submit'));
+          }
+      };
+
+      messageDiv.appendChild(card);
+  }
 
   function addMessage(html, role) {
     const div = document.createElement('div');
@@ -112,6 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
     addMessage(displayPrompt.replace(/</g, '&lt;'), 'user');
     userInput.value = '';
     window.hasAddedMoreBtn = false;
+    window.hasAddedFilePreview = false;
 
     const typingDiv = showTyping();
 
@@ -148,8 +257,20 @@ document.addEventListener('DOMContentLoaded', () => {
               const renderedHtml = window.marked ? marked.parse(agentText) : agentText.replace(/\n/g, '<br>');
               typingDiv.querySelector('.content').innerHTML = renderedHtml;
 
-              // Detect search completion and add "More Results" button
+               // Detect search completion and add "More Results" button
               const isSearchResponse = agentText.includes('Search |') || agentText.includes('Search Results for:');
+              
+              // Detect file creation/update and add preview
+              if (agentText.includes('✅ File written:') || agentText.includes('✅ File updated:')) {
+                  const match = agentText.match(/(?:File written|File updated): (.*)/);
+                  if (match && !window.hasAddedFilePreview) {
+                      const filePath = match[1].trim();
+                      const fileName = filePath.split('/').pop();
+                      addFilePreview(typingDiv, filePath, fileName);
+                      window.hasAddedFilePreview = true;
+                  }
+              }
+
               if (isSearchResponse && !window.hasAddedMoreBtn) {
                 if (agentText.includes('Complete') || agentText.includes('Found')) {
                    window.hasAddedMoreBtn = true;
