@@ -321,14 +321,37 @@ async def handle_syntax_error(ctx, step, task, blocks, memory, session_id, attem
     return text, reflection
 
 
-async def execute_step(ctx, step, task, memory, session_id) -> tuple[bool, str, int]:
-    """Generate → execute → reflect for one step (non-streaming). Returns (ok, text, action_count)."""
-    result_text, total_cnt = "", 0
+async def execute_step(ctx, step, task, memory, session_id, prev_result="") -> tuple[bool, str, int, str]:
+    """Generate → execute → reflect for one step (non-streaming).
+    Returns (ok, text, action_count, step_output).
+    step_output is the raw result string for dependency chaining.
+    """
+    result_text, total_cnt, step_output = "", 0, ""
     for attempt in range(ctx["retries"]):
         # Bypass Generator if direct_action exists
         direct = step.get("direct_action")
         if direct:
-            actions = [{"tool": direct.get("tool"), "kwargs": direct.get("args", {})}]
+            tool_name = direct.get("tool", "")
+            args = dict(direct.get("args", {}))
+            
+            # Substitute {PREV_RESULT} placeholders
+            for k, v in args.items():
+                if isinstance(v, str) and "{PREV_RESULT}" in v:
+                    args[k] = v.replace("{PREV_RESULT}", prev_result)
+            
+            # Handle llm_generate pseudo-tool
+            if tool_name == "llm_generate":
+                instruction = args.get("instruction", "")
+                extra_ctx = args.get("context", prev_result or "")
+                gen_prompt = f"You are Shinobu, a helpful assistant. {instruction}"
+                if extra_ctx:
+                    gen_prompt += f"\n\nContext:\n{extra_ctx}"
+                generated = await ctx["llm"].generate(gen_prompt, session_id=session_id, max_tokens=1500)
+                step_output = generated
+                result_text += f"\nStep 'llm_generate' (attempt {attempt + 1}):\n  Result: Content generated ({len(generated)} chars).\n"
+                return True, result_text, 0, step_output
+            
+            actions = [{"tool": tool_name, "kwargs": args}]
         else:
             gen = await ctx["generator"].generate_step(step, task)
             blocks = gen.get("generation_blocks", [])
@@ -340,10 +363,11 @@ async def execute_step(ctx, step, task, memory, session_id) -> tuple[bool, str, 
             actions = map_artifacts_to_actions(blocks)
 
         if not actions:
-            return True, result_text, total_cnt
+            return True, result_text, total_cnt, step_output
         action_result, actions, executed = await validate_and_execute(ctx, actions)
         if executed:
             total_cnt += len(actions)
+            step_output = action_result
         approach = step.get("solution", {}).get("approach", "")
         reflection = await ctx["reflector"].reflect(approach, {"actions": actions}, action_result)
         log_agent_action("reflector", "reflect", {"approach": approach, "actions": actions, "result": action_result}, reflection, "success")
@@ -351,8 +375,8 @@ async def execute_step(ctx, step, task, memory, session_id) -> tuple[bool, str, 
         schedule_background(ctx["bg"], memory.add_interaction(
             session_id, "system", f"Step: {step.get('type')} | Result: {action_result} | Reflection: {reflection['reflection']}"))
         if reflection["is_complete"]:
-            return True, result_text, total_cnt
-    return False, result_text, total_cnt
+            return True, result_text, total_cnt, step_output
+    return False, result_text, total_cnt, step_output
 
 
 # ---------------------------------------------------------------------------
