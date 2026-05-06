@@ -33,13 +33,17 @@ async def test_agent():
 if __name__ == "__main__":
     # Ensure OPENAI_API_KEY is available or it might fail if not properly loaded
     from dotenv import load_dotenv
-    # Load .env from Giyu (shared credentials)
+    # Load local .env first, then Giyu as fallback
+    local_env = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".env"))
     giyu_env = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "Giyu", ".env"))
-    if os.path.exists(giyu_env):
-        print(f"Loading env from: {giyu_env}")
+    
+    if os.path.exists(local_env):
+        print(f"Loading env from local: {local_env}")
+        load_dotenv(local_env, override=True)
+    elif os.path.exists(giyu_env):
+        print(f"Loading env from Giyu fallback: {giyu_env}")
         load_dotenv(giyu_env, override=True)
     else:
-        # Fallback to current dir or global
         load_dotenv(override=True)
     
     key = os.getenv("OPENAI_API_KEY")
