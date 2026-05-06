@@ -111,11 +111,21 @@ SAFE_COMMANDS = ["ls", "pwd", "mkdir -p", "touch", "cat", "git status"]
 
 def pre_execution_validate(actions: list) -> list:
     errors = []
+    # Tools that are allowed to use absolute paths
+    FILE_TOOLS = ["file_reader", "file_writer", "file_editor", "file_deleter", "file_search_engine"]
+    
     for act in actions:
         tool, kwargs = act.get("tool"), act.get("kwargs", {})
         path = kwargs.get("path") or kwargs.get("file_path")
-        if path and (path.startswith("/") or ".." in path):
-            errors.append(f"Safety Violation: Path '{path}' is absolute or contains '..'")
+        
+        # Check for directory traversal (..) which is always forbidden for security
+        if path and ".." in path:
+            errors.append(f"Safety Violation: Path '{path}' contains '..'")
+            
+        # Check for absolute paths, but allow them for standard FILE_TOOLS
+        if path and path.startswith("/") and tool not in FILE_TOOLS:
+            errors.append(f"Safety Violation: Absolute path '{path}' is forbidden for tool '{tool}'")
+            
         if tool in SENSITIVE_TOOLS:
             cmd = kwargs.get("command", "")
             for pat in FORBIDDEN_PATTERNS:
