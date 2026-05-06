@@ -2,7 +2,7 @@
   "context_id": "a3720f22-166c-4697-80a8-35092cb17ab7",
   "metadata": {
     "created_at": "2026-05-06T16:03:08.179884",
-    "updated_at": "2026-05-06T16:03:57.057000",
+    "updated_at": "2026-05-06T16:04:23.721597",
     "original_prompt": "Create a summary of the project architecture and save it as a text file in my Downloads/shinobu directory."
   },
   "tasks": [
@@ -18,7 +18,7 @@
       "title": "Summarize project architecture",
       "description": "Extract key components, structure, and relationships from the architecture information into a concise summary.",
       "priority": 1,
-      "status": "pending"
+      "status": "failed"
     },
     {
       "id": 3,
@@ -50,7 +50,7 @@
     {
       "plan_step_id": 2,
       "task_id": 2,
-      "status": "pending",
+      "status": "failed",
       "type": "file_reader",
       "solution": {
         "approach": "Use file_reader"
@@ -71,10 +71,6 @@
     "completed_steps": [],
     "pending_steps": [
       {
-        "id": 2,
-        "title": "Summarize project architecture"
-      },
-      {
         "id": 3,
         "title": "Create text file with summary"
       }
@@ -83,6 +79,10 @@
       {
         "id": 1,
         "title": "Read project architecture information"
+      },
+      {
+        "id": 2,
+        "title": "Summarize project architecture"
       }
     ]
   },
