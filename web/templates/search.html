@@ -39,27 +39,14 @@
                 </div>
 
                 <!-- Level Selector -->
-                <div class="level-selector">
-                    <button class="level-btn active" data-level="auto" id="level-auto">
-                        <span class="level-icon"><i class="bi bi-robot"></i></span>
-                        <span class="level-label">Auto</span>
-                        <span class="level-desc">Shinobu decides</span>
-                    </button>
-                    <button class="level-btn" data-level="fast" id="level-fast">
-                        <span class="level-icon"><i class="bi bi-lightning-charge"></i></span>
-                        <span class="level-label">Fast</span>
-                        <span class="level-desc">Open instantly</span>
-                    </button>
-                    <button class="level-btn" data-level="mid" id="level-mid">
-                        <span class="level-icon"><i class="bi bi-bullseye"></i></span>
-                        <span class="level-label">Mid</span>
-                        <span class="level-desc">Browse results</span>
-                    </button>
-                    <button class="level-btn" data-level="deep" id="level-deep">
-                        <span class="level-icon"><i class="bi bi-cpu"></i></span>
-                        <span class="level-label">Deep</span>
-                        <span class="level-desc">Research & analyze</span>
-                    </button>
+                <div class="level-select-wrapper" style="margin-top: 1rem; display: flex; align-items: center; gap: 10px;">
+                    <label for="level-selector" style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">Strategy:</label>
+                    <select id="level-selector" class="mode-select-dropdown" style="flex: 1; padding: 10px 15px;">
+                        <option value="auto" selected>Auto — Shinobu decides</option>
+                        <option value="fast">Fast — Open instantly</option>
+                        <option value="mid">Mid — Browse results</option>
+                        <option value="deep">Deep — Research & analyze</option>
+                    </select>
                 </div>
             </div>
 
