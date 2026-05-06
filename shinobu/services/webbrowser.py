@@ -372,63 +372,43 @@ class WebBrowserService:
             return await self._mid_search_httpx(query)
 
     async def _mid_search_httpx(self, query: str) -> Dict[str, Any]:
-        """Mid Search fallback via httpx — no JS rendering."""
-        import httpx
-        from bs4 import BeautifulSoup
-
+        """Mid Search fallback via duckduckgo_search library — extremely reliable."""
         try:
-            async with httpx.AsyncClient(
-                headers=self._HEADERS,
-                timeout=self._TIMEOUT,
-                follow_redirects=True,
-            ) as client:
-                resp = await client.get(duckduckgo_url(query, lite=True))
-                resp.raise_for_status()
-
-            soup = BeautifulSoup(resp.text, "lxml")
+            from duckduckgo_search import DDGS
             results = []
-            results_seen = set()
-
-            # Extract with resilient selectors for DDG Lite
-            containers = soup.select(".result, .links_main, .web-result")
             
-            for i, result_div in enumerate(containers):
-                if len(results) >= 10:
-                    break
+            # Use DDGS context manager for thread-safe search
+            with DDGS(headers=self._HEADERS) as ddgs:
+                # Get up to 12 results
+                ddg_results = list(ddgs.text(query, max_results=12))
                 
-                title_el = result_div.select_one(".result__a, .result__title a, a.result-link")
-                snippet_el = result_div.select_one(".result__snippet, .snippet, .result__body")
-                url_el = result_div.select_one(".result__url, .url")
-                
-                if title_el and title_el.get("href"):
-                    raw_url = title_el.get("href")
-                    if "duckduckgo.com/y.js" in raw_url: continue
+                for r in ddg_results:
+                    url = r.get("href") or r.get("url")
+                    if not url: continue
                     
-                    real_url = clean_ddg_url(raw_url)
-                    if real_url and real_url not in results_seen:
-                        from urllib.parse import urlparse
-                        domain = urlparse(real_url).netloc
-                        
-                        results.append({
-                            "index": len(results) + 1,
-                            "title": title_el.get_text(strip=True),
-                            "url": real_url,
-                            "snippet": snippet_el.get_text(strip=True) if snippet_el else "",
-                            "display_url": url_el.get_text(strip=True) if url_el else "",
-                            "favicon": f"https://www.google.com/s2/favicons?sz=64&domain_url={domain}",
-                            "image": None
-                        })
-                        results_seen.add(real_url)
+                    from urllib.parse import urlparse
+                    domain = urlparse(url).netloc
+                    
+                    results.append({
+                        "index": len(results) + 1,
+                        "title": r.get("title", "Untitled"),
+                        "url": url,
+                        "snippet": r.get("body") or r.get("snippet", ""),
+                        "display_url": domain,
+                        "favicon": f"https://www.google.com/s2/favicons?sz=64&domain_url={domain}",
+                        "image": None # Library doesn't provide thumbnails in text mode
+                    })
 
             return {
                 "success": True,
                 "action": "mid_search",
-                "engine": "httpx",
+                "engine": "ddgs_library",
                 "query": query,
                 "result_count": len(results),
                 "results": results,
             }
         except Exception as e:
+            logger.error(f"DDGS library search failed: {e}")
             return {"success": False, "action": "mid_search", "error": str(e)}
 
     async def navigate_to(self, url: str) -> Dict[str, Any]:
