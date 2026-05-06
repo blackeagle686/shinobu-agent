@@ -5,7 +5,7 @@ import os
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from Shinobu.shinobu.services.webbrowser import WebBrowserService
+from shinobu.services.webbrowser import WebBrowserService
 
 async def test_search():
     service = WebBrowserService()
