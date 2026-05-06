@@ -190,3 +190,11 @@ def add_automation_pipeline(pipeline: dict) -> None:
         {**pipeline, "created_at": datetime.now().isoformat()}
     )
     _save_backbone(data)
+
+def set_last_result(result: str) -> None:
+    data = _load_backbone()
+    data["memory"]["last_execution_result"] = result
+    _save_backbone(data)
+
+def get_last_result() -> str:
+    return _load_backbone().get("memory", {}).get("last_execution_result", "")
