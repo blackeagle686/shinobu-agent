@@ -419,7 +419,7 @@ class WebBrowserService:
         try:
             from ddgs import DDGS
             results = []
-            with DDGS(headers=self._HEADERS) as ddgs:
+            with DDGS() as ddgs:
                 ddg_results = list(ddgs.text(query, max_results=10))
                 for r in ddg_results:
                     url = r.get("href") or r.get("url")
