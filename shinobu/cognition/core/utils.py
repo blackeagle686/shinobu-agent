@@ -6,7 +6,7 @@ import json
 import os
 import asyncio
 
-from ..helpers.tasks import TASK_FILE, _load_tasks, _mark_task, _reset_failed_tasks
+from ..helpers.tasks import TASK_FILE, _load_tasks, _save_tasks, _mark_task, _reset_failed_tasks
 from ..helpers.plan import (
     PLAN_FILE, _get_pending_plan_steps, _get_executable_plan_steps,
     _mark_plan_step, _reset_failed_plan_steps,
