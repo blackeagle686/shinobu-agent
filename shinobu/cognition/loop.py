@@ -52,6 +52,7 @@ class ShinobuLoop(AgentLoop):
             safety_decision=self.safety_decision,
             ux_generator=self.ux_generator,
             llm=self.planner.llm, bg=self._background_tasks, retries=self.MAX_RETRIES,
+            profile=self.ux_generator.profile if self.ux_generator else None,
         )
 
     # ------------------------------------------------------------------
