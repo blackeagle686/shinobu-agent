@@ -112,6 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     addMessage(displayPrompt.replace(/</g, '&lt;'), 'user');
     userInput.value = '';
+    window.hasRedirected = false;
 
     const typingDiv = showTyping();
 
@@ -144,6 +145,20 @@ document.addEventListener('DOMContentLoaded', () => {
               }
               agentText += data.content;
               typingDiv.querySelector('.content').innerHTML = agentText.replace(/\n/g, '<br>');
+
+              // Detect search completion and redirect
+              if (agentText.includes('Search |') && !window.hasRedirected) {
+                const searchMatch = agentText.match(/(?:Search \|).*?\n(.*)/i);
+                const queryMatch = agentText.match(/query: "(.*?)"/i) || agentText.match(/Searching for (.*?)\n/i);
+                
+                if (agentText.includes('Complete') || agentText.includes('Found')) {
+                   window.hasRedirected = true;
+                   setTimeout(() => {
+                      const finalQuery = queryMatch ? queryMatch[1] : text;
+                      window.location.href = `/search?q=${encodeURIComponent(finalQuery)}`;
+                   }, 2500);
+                }
+              }
             }
           } catch (_) {}
         }

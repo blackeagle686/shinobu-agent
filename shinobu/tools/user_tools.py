@@ -126,7 +126,7 @@ class WebSearchTool(BaseTool):
                 output = f"🟢 Fast Search | {reason}\n"
                 if result.get("success"):
                     url = result.get("url") or result.get("search_url", "")
-                    output += f"🌐 Opened: {url}"
+                    output += f"🌐 Opened: {url}\nSearch Complete."
                 else:
                     output += f"❌ Failed: {result.get('error', 'Unknown error')}"
                 return ToolResult(success=result.get("success", False), output=output)
@@ -143,6 +143,7 @@ class WebSearchTool(BaseTool):
                         if r.get("snippet"):
                             output += f"     {r['snippet'][:120]}\n"
                         output += "\n"
+                    output += "\nSearch Complete."
                 else:
                     output += f"❌ Failed: {result.get('error', 'Unknown error')}"
                 return ToolResult(success=result.get("success", False), output=output)
