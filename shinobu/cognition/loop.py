@@ -73,6 +73,11 @@ class ShinobuLoop(AgentLoop):
             return await fast_answer(ctx, prompt, memory, session_id)
 
         obj = await init_phase(ctx, prompt, memory, session_id, is_resume)
+        intent_data = memory.session.get("intent_data", {})
+        
+        if not is_resume and intent_data.get("intent") == "communication":
+            return await fast_answer(ctx, prompt, memory, session_id)
+
         await memory.add_interaction(session_id, "system", f"Task breakdown: {obj}")
 
         results, summaries, total = "", [], 0
@@ -128,7 +133,20 @@ class ShinobuLoop(AgentLoop):
         yield {"type": "status", "role": "system" if is_resume else "thinker",
                "content": "🔄 Resuming..." if is_resume else "🧠 Decomposing your request..."}
 
+        # For stream_task_steps we need intent_data.
+        # But wait, we can just do intent_data = await ctx["intent_interpreter"].interpret(prompt) here if we wanted.
+        # But it's done in init_phase. Let's retrieve it from memory, or just return it from init_phase!
+        # Actually let's just let init_phase handle it and we retrieve intent_data from memory.
+        # Wait, I didn't save intent_data to memory in init_phase! Let's do it right now in loop.py by passing intent_data manually or saving it.
         obj = await init_phase(ctx, prompt, memory, session_id, is_resume)
+        intent_data = memory.session.get("intent_data", {})
+        
+        # Fast path chat routing if intent is communication and not resuming
+        if not is_resume and intent_data.get("intent") == "communication":
+            async for ev in fast_answer_stream(ctx, prompt, memory, session_id):
+                yield ev
+            return
+
         memory.session.set("current_objective", obj)
         yield {"type": "status", "role": "thinker", "content": "📋 Tasks Breakdown Complete"}
         await memory.add_interaction(session_id, "system", f"Task breakdown: {obj}")
@@ -157,7 +175,7 @@ class ShinobuLoop(AgentLoop):
 
             # Delegate step processing to async generator
             sr = StepResult()
-            async for ev in stream_task_steps(ctx, task, tid, memory, session_id, sr):
+            async for ev in stream_task_steps(ctx, task, tid, memory, session_id, sr, intent_data=intent_data):
                 yield ev
 
             total += sr.action_count
