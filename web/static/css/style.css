@@ -610,12 +610,13 @@ a {
 }
 
 .mode-select-dropdown {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--glass-border);
-  color: var(--text-primary);
+  background: linear-gradient(135deg, var(--pink), var(--mint));
+  border: none;
+  color: #fff;
   padding: 0.6rem 0.8rem;
   border-radius: var(--radius-md);
   font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
   outline: none;
   transition: all 0.3s ease;
