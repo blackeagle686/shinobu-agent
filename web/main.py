@@ -4,8 +4,8 @@ import json
 import asyncio
 import time
 import uvicorn
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi import FastAPI, Request, File, UploadFile, Query
+from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -176,6 +176,71 @@ async def search_endpoint(req: SearchRequest):
         "llm_answer": llm_answer,
         **result,
     }
+
+@app.get("/api/files")
+async def list_files(q: str = ""):
+    """List files and folders in home directory for the '@' mention feature."""
+    home = os.path.expanduser("~")
+    results = []
+    
+    # Simple recursive walk with depth limit or just top level + some depth
+    # For now, let's just do a limited search for performance
+    try:
+        for root, dirs, files in os.walk(home):
+            # Skip hidden dirs
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+            
+            # depth check (limit to 3 levels for @ performance)
+            depth = root[len(home):].count(os.sep)
+            if depth > 2:
+                dirs[:] = []
+                continue
+
+            for name in dirs + files:
+                if q.lower() in name.lower():
+                    full_path = os.path.join(root, name)
+                    rel_path = os.path.relpath(full_path, home)
+                    results.append({
+                        "name": name,
+                        "path": full_path,
+                        "rel_path": f"~/{rel_path}",
+                        "is_dir": os.path.isdir(full_path)
+                    })
+                if len(results) > 20: break
+            if len(results) > 20: break
+    except Exception: pass
+    return results
+
+@app.post("/api/upload")
+async def upload_file(file: UploadFile = File(...)):
+    """Handle file uploads and save to default Downloads/shinobu directory."""
+    upload_dir = os.path.expanduser("~/Downloads/shinobu")
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    file_path = os.path.join(upload_dir, file.filename)
+    with open(file_path, "wb") as f:
+        f.write(await file.read())
+    
+    return {
+        "success": True, 
+        "filename": file.filename, 
+        "path": file_path,
+        "rel_path": f"~/Downloads/shinobu/{file.filename}"
+    }
+
+@app.get("/api/view-file")
+async def view_file(path: str = Query(...)):
+    """Serve a file for previewing (PDF, images, etc.)."""
+    full_path = os.path.expanduser(path)
+    if not os.path.exists(full_path):
+        return {"error": "File not found"}
+    
+    # Basic safety check: only allow files in home directory
+    home = os.path.expanduser("~")
+    if not os.path.abspath(full_path).startswith(home):
+        return {"error": "Access denied"}
+
+    return FileResponse(full_path)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
