@@ -19,9 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const modeSelector = document.getElementById('mode-selector');
   let currentMode = modeSelector ? modeSelector.value : 'auto';
-  const agentLiveFeed = document.getElementById('agent-live-feed');
-  const agentLiveChip = document.getElementById('agent-live-chip');
-  const agentLiveClear = document.getElementById('agent-live-clear');
   const MAX_LIVE_ITEMS = 80;
 
   if (modeSelector) {
@@ -30,28 +27,41 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   }
 
-  function setLiveState(state) {
-      if (!agentLiveChip) return;
-      agentLiveChip.textContent = state;
-  }
-
-  function clearLiveFeed() {
-      if (!agentLiveFeed) return;
-      agentLiveFeed.innerHTML = `
-          <div class="agent-live-empty">
-              Live LLM thinking, planning, and execution updates will appear here.
+  function createLivePanel() {
+      const panel = document.createElement('div');
+      panel.className = 'agent-live-panel';
+      panel.innerHTML = `
+        <div class="agent-live-header">
+          <div class="agent-live-title-wrap">
+            <i class="bi bi-cpu"></i>
+            <h4>Agent Thinking & Planning</h4>
+            <span class="agent-live-chip">Running</span>
           </div>
+          <button class="agent-live-clear" type="button" title="Clear live feed">
+            <i class="bi bi-trash3"></i>
+          </button>
+        </div>
+        <div class="agent-live-feed">
+          <div class="agent-live-empty">Live LLM updates will appear here.</div>
+        </div>
       `;
-      setLiveState('Idle');
+      const clearBtn = panel.querySelector('.agent-live-clear');
+      const feed = panel.querySelector('.agent-live-feed');
+      const chip = panel.querySelector('.agent-live-chip');
+      clearBtn.addEventListener('click', () => {
+          feed.innerHTML = '<div class="agent-live-empty">Live LLM updates will appear here.</div>';
+      });
+      return { panel, feed, chip };
   }
 
-  if (agentLiveClear) {
-      agentLiveClear.addEventListener('click', clearLiveFeed);
+  function setLiveState(live, state) {
+      if (!live?.chip) return;
+      live.chip.textContent = state;
   }
 
-  function pushLiveEvent(role, text) {
-      if (!agentLiveFeed || !text) return;
-      const empty = agentLiveFeed.querySelector('.agent-live-empty');
+  function pushLiveEvent(live, role, text) {
+      if (!live?.feed || !text) return;
+      const empty = live.feed.querySelector('.agent-live-empty');
       if (empty) empty.remove();
 
       const line = document.createElement('div');
@@ -63,12 +73,12 @@ document.addEventListener('DOMContentLoaded', () => {
         <span class="agent-live-time">${timeNow()}</span>
       `;
       line.querySelector('.agent-live-text').textContent = text.trim();
-      agentLiveFeed.appendChild(line);
+      live.feed.appendChild(line);
 
-      while (agentLiveFeed.children.length > MAX_LIVE_ITEMS) {
-          agentLiveFeed.removeChild(agentLiveFeed.firstChild);
+      while (live.feed.children.length > MAX_LIVE_ITEMS) {
+          live.feed.removeChild(live.feed.firstChild);
       }
-      agentLiveFeed.scrollTop = agentLiveFeed.scrollHeight;
+      live.feed.scrollTop = live.feed.scrollHeight;
   }
 
   let replyingTo = null;
@@ -273,7 +283,9 @@ document.addEventListener('DOMContentLoaded', () => {
     window.hasAddedFilePreview = false;
 
     const typingDiv = showTyping();
-    setLiveState('Running');
+    const live = createLivePanel();
+    typingDiv.prepend(live.panel);
+    setLiveState(live, 'Running');
 
     try {
       const res = await fetch('/api/chat', {
@@ -297,13 +309,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = JSON.parse(line.substring(6));
             if (data.type === 'status') {
               typingDiv.innerHTML = `<span style="color:var(--mint);font-size:0.82rem;">🦋 ${data.content}</span>`;
-              pushLiveEvent(data.role || 'system', data.content || '');
+              if (!typingDiv.querySelector('.agent-live-panel')) {
+                typingDiv.prepend(live.panel);
+              }
+              const statusEl = document.createElement('span');
+              statusEl.style.cssText = 'color:var(--mint);font-size:0.82rem;';
+              statusEl.textContent = `🦋 ${data.content}`;
+              typingDiv.appendChild(statusEl);
+              pushLiveEvent(live, data.role || 'system', data.content || '');
             } else if (data.type === 'chunk') {
               if (data.role) {
-                pushLiveEvent(data.role, data.content || '');
+                pushLiveEvent(live, data.role, data.content || '');
               }
               if (!contentStarted) {
-                typingDiv.innerHTML = '<span class="content"></span>';
+                const contentEl = document.createElement('span');
+                contentEl.className = 'content';
+                typingDiv.appendChild(contentEl);
                 contentStarted = true;
               }
               agentText += data.content;
@@ -352,7 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         chatMessages.scrollTop = chatMessages.scrollHeight;
       }
-      setLiveState('Completed');
+      setLiveState(live, 'Completed');
 
       // Finalize message with reply button
       const actions = document.createElement('div');
@@ -372,7 +393,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } catch (err) {
       typingDiv.innerHTML = `<span style="color:var(--pink-hot);">Connection error. Please try again.</span>`;
-      setLiveState('Error');
+      setLiveState(live, 'Error');
     }
   });
 });
