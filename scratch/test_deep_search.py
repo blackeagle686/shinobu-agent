@@ -16,7 +16,7 @@ async def main():
     
     try:
         # Deep search scrapes results and then individual pages
-        result = await service.deep_search(query, limit=2)
+        result = await service.deep_search(query, max_pages=2)
         
         print("\n--- Result ---")
         print(f"Success: {result.get('success')}")
