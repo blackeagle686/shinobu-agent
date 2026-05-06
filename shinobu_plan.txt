@@ -339,4 +339,5 @@ in the web view shiobu should have options to make user select the default pdf v
 and when the user 
 
 history to the chats 
-audio services tts, stt using gtts, 
+audio services tts, stt using gtts, stt speechrecognitio
+
