@@ -330,4 +330,4 @@ Agent	Role
 🦋 Shinobu	User interface + personal assistant
 
 
-make shiobu read the app
+make shiobu read the apps installed for office work like liberio office, microsoft office, w
