@@ -9,6 +9,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const sessionId = 'shinobu_' + Math.random().toString(36).substr(2, 8);
   if (sessionEl) sessionEl.textContent = sessionId;
 
+  let currentMode = 'agent_loop';
+  const modeBtns = document.querySelectorAll('.mode-btn');
+  modeBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+          modeBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentMode = btn.dataset.mode;
+      });
+  });
+
   function timeNow() {
     return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
@@ -49,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: text, session_id: sessionId })
+        body: JSON.stringify({ prompt: text, session_id: sessionId, mode: currentMode })
       });
 
       const reader = res.body.getReader();
