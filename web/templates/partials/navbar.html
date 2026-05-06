@@ -1,0 +1,26 @@
+<aside class="nav-bar">
+    <div class="nav-brand">
+        <div class="nav-brand-icon">🦋</div>
+        <h2>Shinobu OS</h2>
+    </div>
+    
+    <a href="/" class="nav-link">
+        <i class="bi bi-house-door"></i> Overview
+    </a>
+    <a href="/chat" class="nav-link {% if request.url.path == '/chat' %}active{% endif %}">
+        <i class="bi bi-chat-dots"></i> Live Chat
+    </a>
+    <a href="/search" class="nav-link {% if request.url.path == '/search' %}active{% endif %}">
+        <i class="bi bi-search"></i> Search
+    </a>
+    <a href="/results" class="nav-link {% if request.url.path == '/results' %}active{% endif %}">
+        <i class="bi bi-card-checklist"></i> Operation Cards
+    </a>
+    <a href="/analysis" class="nav-link {% if request.url.path == '/analysis' %}active{% endif %}">
+        <i class="bi bi-graph-up"></i> Analytics
+    </a>
+    
+    <div class="nav-session">
+        <p id="session-id">Session: LOADING</p>
+    </div>
+</aside>
