@@ -70,8 +70,6 @@ Shinobu features a tiered research engine that adapts to the complexity of your 
 
 ---
 
----
-
 ### 🧠 The Hybrid Cognitive Architecture (7 Brains)
 
 #### LLM-Powered Brains
