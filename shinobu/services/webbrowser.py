@@ -631,7 +631,7 @@ class WebBrowserService:
                 return cached
 
         # ── Step 1: Get search results (via Mid Search engine) ──
-        search_results = await self._mid_search_httpx(query)
+        search_results = await self.mid_search(query)
         if not search_results.get("success"):
             return {
                 "success": False,
