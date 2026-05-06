@@ -558,6 +558,122 @@ a {
   background: var(--grad-mesh);
 }
 
+.agent-live-panel {
+  margin: 1rem 2rem 0.2rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(17, 17, 25, 0.95), rgba(25, 25, 38, 0.9));
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.agent-live-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.agent-live-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.agent-live-title-wrap i {
+  color: var(--purple-light);
+  font-size: 0.95rem;
+}
+
+.agent-live-title-wrap h4 {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.2px;
+}
+
+.agent-live-chip {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--mint-light);
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.25);
+  border-radius: 999px;
+  padding: 0.14rem 0.5rem;
+}
+
+.agent-live-clear {
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.agent-live-clear:hover {
+  color: var(--pink);
+  border-color: var(--pink);
+}
+
+.agent-live-feed {
+  max-height: 170px;
+  overflow-y: auto;
+  padding: 0.75rem 1rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.agent-live-empty {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.agent-live-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 0.55rem;
+  font-size: 0.79rem;
+  line-height: 1.4;
+  color: #dbeafe;
+}
+
+.agent-live-role {
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 0.12rem 0.45rem;
+  color: #fff;
+  min-width: 62px;
+  text-align: center;
+}
+
+.agent-live-role.thinker { background: rgba(124, 58, 237, 0.3); }
+.agent-live-role.planner { background: rgba(59, 130, 246, 0.28); }
+.agent-live-role.actor { background: rgba(16, 185, 129, 0.25); }
+.agent-live-role.reflector { background: rgba(236, 72, 153, 0.23); }
+.agent-live-role.system { background: rgba(148, 163, 184, 0.22); }
+
+.agent-live-text {
+  white-space: pre-wrap;
+  color: #dbeafe;
+}
+
+.agent-live-time {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
 .message {
   max-width: 75%;
   padding: 1rem 1.4rem;
