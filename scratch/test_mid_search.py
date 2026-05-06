@@ -3,10 +3,10 @@ import asyncio
 import sys
 import os
 
-# Add the project root to sys.path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
+# Add the Shinobu project directory to sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from Shinobu.shinobu.services.webbrowser import WebBrowserService
+from shinobu.services.webbrowser import WebBrowserService
 
 async def test_mid_search():
     browser = WebBrowserService()
