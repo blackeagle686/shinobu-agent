@@ -109,12 +109,23 @@ async def search_endpoint(req: SearchRequest):
         reason = f"Manually set to {level}"
 
     # Execute search
+    llm_answer = None
     if level == "fast":
         result = await browser.fast_search(req.query)
     elif level == "mid":
         result = await browser.mid_search(req.query)
     else:
+        # Deep Search: Scrape top 3 pages
         result = await browser.deep_search(req.query, extended=req.extended)
+        
+        # Generate LLM Summary if search was successful
+        if result.get("success") and result.get("pages") and SHINOBU_AGENT:
+            from Shinobu.shinobu.cognition.core.prompts import build_deep_search_summary_prompt
+            pages = result.get("pages", [])
+            scraped_count = result.get("pages_scraped", 0)
+            
+            prompt = build_deep_search_summary_prompt(req.query, pages, scraped_count)
+            llm_answer = await SHINOBU_AGENT.thinker.llm.generate(prompt, session_id=None, max_tokens=1500)
 
     elapsed = round(time.time() - start, 2)
 
@@ -123,6 +134,7 @@ async def search_endpoint(req: SearchRequest):
         "reason": reason,
         "elapsed_seconds": elapsed,
         "query": req.query,
+        "llm_answer": llm_answer,
         **result,
     }
 
