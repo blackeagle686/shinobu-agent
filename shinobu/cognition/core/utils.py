@@ -214,6 +214,9 @@ async def init_phase(ctx, prompt, memory, session_id, is_resume) -> str:
     
     # 2. Decompose into tasks
     subtasks = await ctx["task_decomposer"].decompose(prompt, intent_data)
+    for t in subtasks:
+        if "status" not in t:
+            t["status"] = "pending"
     log_agent_action("task_decomposer", "decompose", {"prompt": prompt, "intent": intent_data}, {"subtasks": subtasks}, "success")
     
     # 3. Save tasks to backbone
