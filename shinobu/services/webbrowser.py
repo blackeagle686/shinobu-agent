@@ -637,17 +637,27 @@ class WebBrowserService:
 
     async def scrape_page(self, url: str, use_playwright: bool = True) -> Dict[str, Any]:
         """
-        Deep scrape a single page with high robustness.
-        Uses Playwright (if available) for JS rendering and better bot evasion,
-        falling back to httpx for static/fast cases or if Playwright fails.
+        Deep scrape a single page with high robustness and speed.
+        Optimized to use fast HTTP scraping first, falling back to Playwright
+        for JS-heavy sites (SPAs) or anti-bot protections.
         """
-        if use_playwright and await self._check_playwright():
-            result = await self._scrape_page_playwright(url)
-            if result.get("success"):
-                return result
-            logger.warning(f"Playwright scrape failed for {url}, falling back to httpx: {result.get('error')}")
+        # Try fast HTTP scrape first
+        httpx_res = await self._scrape_page_httpx(url)
+        
+        # If HTTP scrape succeeds and returns sufficient content, return immediately
+        if httpx_res.get("success") and httpx_res.get("word_count", 0) > 100:
+            return httpx_res
 
-        return await self._scrape_page_httpx(url)
+        # Fall back to Playwright if HTTP failed or returned little content
+        if use_playwright and await self._check_playwright():
+            logger.info(f"Fast HTTP scrape insufficient for {url}, falling back to Playwright.")
+            pw_res = await self._scrape_page_playwright(url)
+            if pw_res.get("success"):
+                return pw_res
+            logger.warning(f"Playwright scrape failed for {url}: {pw_res.get('error')}")
+
+        # If Playwright also failed or is disabled, return whatever HTTP scrape got
+        return httpx_res
 
     async def _scrape_page_playwright(self, url: str) -> Dict[str, Any]:
         """Scrape via Playwright — handles JS and bypasses basic bot detection."""
