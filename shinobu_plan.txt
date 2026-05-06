@@ -328,3 +328,6 @@ Agent	Role
 🪨 Giyu	System health
 🔥 Rengoku	Execution engine
 🦋 Shinobu	User interface + personal assistant
+
+
+make shiobu read the app
