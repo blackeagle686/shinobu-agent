@@ -211,6 +211,15 @@ def finalize_task(task_id, task, failed, summaries, result_output=None):
 
 async def init_phase(ctx, prompt, memory, session_id, is_resume) -> str:
     """Think phase (or resume). Returns objective metadata string."""
+    from ..helpers.backbone import get_last_result, set_last_result
+    
+    last_res = get_last_result()
+    if "QUESTION_TO_USER:" in last_res and not is_resume:
+        # User is likely replying to a question. Treat as resume and store the answer.
+        set_last_result(f"USER_ANSWER: {prompt}")
+        is_resume = True
+        log_agent_action("loop", "detect_reply", {"prompt": prompt}, {"status": "reply_detected"}, "success")
+
     if is_resume:
         log_agent_action("loop", "resume_execution", {}, {"status": "resuming"}, "success")
         _reset_failed_tasks()

@@ -81,7 +81,6 @@ class ShinobuLoop(AgentLoop):
         await memory.add_interaction(session_id, "system", f"Task breakdown: {obj}")
 
         results, summaries, total = "", [], 0
-        prev_result = "" # Result persists across tasks
 
         while has_task_file() and total < self.MAX_ACTIONS:
             pending = get_pending_tasks()
@@ -109,7 +108,7 @@ class ShinobuLoop(AgentLoop):
                     failed = True
                     break
 
-            finalize_task(tid, task, failed, summaries)
+            finalize_task(tid, task, failed, summaries, result_output=prev_result)
             
             # If the tool asked a question, we MUST stop the loop and wait for user input
             if "QUESTION_TO_USER:" in prev_result:
@@ -159,7 +158,6 @@ class ShinobuLoop(AgentLoop):
         await memory.add_interaction(session_id, "system", f"Task breakdown: {obj}")
 
         results, summaries, total, task_num = "", [], 0, 0
-        prev_result = "" # Result persists across tasks
 
         while has_task_file() and total < self.MAX_ACTIONS:
             executable = get_executable_tasks()
@@ -191,7 +189,7 @@ class ShinobuLoop(AgentLoop):
             results += sr.text
             if sr.step_output:
                 prev_result = sr.step_output
-            finalize_task(tid, task, sr.failed, summaries)
+            finalize_task(tid, task, sr.failed, summaries, result_output=prev_result)
 
             # If the tool asked a question, we MUST stop the loop and wait for user input
             if "QUESTION_TO_USER:" in prev_result:
