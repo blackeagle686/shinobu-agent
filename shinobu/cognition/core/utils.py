@@ -234,7 +234,8 @@ async def ensure_plan_steps(ctx, task, task_id) -> list:
 
 async def fast_answer(ctx, prompt, memory, session_id) -> str:
     context = await memory.get_full_context(session_id, query=prompt)
-    ans = await ctx["llm"].generate(build_fast_answer_prompt(context, prompt), session_id=session_id)
+    profile_info = str(ctx["profile"].to_dict()) if ctx.get("profile") else ""
+    ans = await ctx["llm"].generate(build_fast_answer_prompt(context, prompt, profile_info), session_id=session_id)
     await memory.add_interaction(session_id, "assistant", ans)
     return ans
 
@@ -242,7 +243,8 @@ async def fast_answer(ctx, prompt, memory, session_id) -> str:
 async def fast_answer_stream(ctx, prompt, memory, session_id):
     yield {"type": "status", "role": "analyzer", "content": "⚡ Fast Answer mode active..."}
     context = await memory.get_full_context(session_id, query=prompt)
-    async for chunk in ctx["llm"].generate_stream(build_fast_answer_prompt(context, prompt), session_id=session_id):
+    profile_info = str(ctx["profile"].to_dict()) if ctx.get("profile") else ""
+    async for chunk in ctx["llm"].generate_stream(build_fast_answer_prompt(context, prompt, profile_info), session_id=session_id):
         yield {"type": "chunk", "content": chunk}
     await memory.add_interaction(session_id, "assistant", "Fast answer generated.")
 
