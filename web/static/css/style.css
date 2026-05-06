@@ -627,6 +627,78 @@ a { color: inherit; text-decoration: none; }
 .stagger-1 { animation: fadeIn 0.8s ease-out both 0.1s; }
 .stagger-2 { animation: fadeIn 0.8s ease-out both 0.2s; }
 .stagger-3 { animation: fadeIn 0.8s ease-out both 0.3s; }
+
+/* ── Markdown Content Styles ── */
+.message span p { margin-bottom: 0.8rem; }
+.message span p:last-child { margin-bottom: 0; }
+
+.message span h1, .message span h2, .message span h3 {
+    margin: 1rem 0 0.5rem 0;
+    color: var(--purple-light);
+}
+
+.message span ul, .message span ol {
+    margin: 0.5rem 0 1rem 1.5rem;
+}
+
+.message span li {
+    margin-bottom: 0.3rem;
+}
+
+.message span code {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9em;
+    color: var(--pink-light);
+}
+
+.message span pre {
+    background: rgba(0, 0, 0, 0.4);
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 1rem 0;
+    border: 1px solid var(--glass-border);
+}
+
+.message span pre code {
+    background: none;
+    padding: 0;
+    color: var(--text-secondary);
+}
+
+.message span blockquote {
+    border-left: 3px solid var(--purple);
+    padding: 0.5rem 1rem;
+    margin: 1rem 0;
+    background: rgba(124, 58, 237, 0.05);
+    font-style: italic;
+    color: var(--text-secondary);
+}
+
+.message span table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.85rem;
+}
+
+.message span th, .message span td {
+    padding: 0.6rem;
+    border: 1px solid var(--glass-border);
+    text-align: left;
+}
+
+.message span th {
+    background: rgba(124, 58, 237, 0.1);
+    color: var(--purple-light);
+}
+
+.message span tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.02);
+}
 .mode-switcher {
     display: flex;
     background: rgba(0,0,0,0.3);
