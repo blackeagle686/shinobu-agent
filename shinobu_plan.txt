@@ -331,4 +331,5 @@ Agent	Role
 
 
 make shiobu read the apps installed for office work like liberio office, microsoft office,WPS office 
-and check default app setting for document editing and opening 
+and check default app setting for document editing and opening and and add it's updates there and make user show this operation and 
+ 
