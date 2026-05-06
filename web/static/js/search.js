@@ -48,6 +48,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ── Check for URL query parameter ──
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryParam = urlParams.get('q');
+    const levelParam = urlParams.get('level');
+
+    if (queryParam) {
+        searchInput.value = queryParam;
+        if (levelParam && ['auto', 'fast', 'mid', 'deep'].includes(levelParam)) {
+            levelBtns.forEach(b => b.classList.remove('active'));
+            const targetBtn = document.querySelector(`[data-level="${levelParam}"]`);
+            if (targetBtn) {
+                targetBtn.classList.add('active');
+                currentLevel = levelParam;
+            }
+        }
+        executeSearch();
+    }
+
     // ── Level Selector ──
     levelBtns.forEach(btn => {
         btn.addEventListener('click', () => {
