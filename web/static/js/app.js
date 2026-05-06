@@ -3,6 +3,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const chatForm = document.getElementById('chat-form');
   const userInput = document.getElementById('user-input');
   const sessionEl = document.getElementById('session-id');
+  const replyPreview = document.getElementById('reply-preview');
+  const replyPreviewText = document.getElementById('reply-preview-text');
+  const cancelReplyBtn = document.getElementById('cancel-reply');
 
   if (!chatForm) return;
 
@@ -10,6 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (sessionEl) sessionEl.textContent = sessionId;
 
   let currentMode = 'agent_loop';
+  let replyingTo = null;
+
   const modeBtns = document.querySelectorAll('.mode-btn');
   modeBtns.forEach(btn => {
       btn.addEventListener('click', () => {
@@ -23,10 +28,44 @@ document.addEventListener('DOMContentLoaded', () => {
     return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
+  function setReply(text) {
+      replyingTo = text;
+      replyPreviewText.textContent = `Replying to: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`;
+      replyPreview.style.display = 'flex';
+      userInput.focus();
+  }
+
+  function clearReply() {
+      replyingTo = null;
+      replyPreview.style.display = 'none';
+  }
+
+  cancelReplyBtn.addEventListener('click', clearReply);
+
   function addMessage(html, role) {
     const div = document.createElement('div');
     div.className = `message ${role}`;
-    div.innerHTML = `<span>${html}</span><span class="ts">${timeNow()}</span>`;
+    
+    const content = document.createElement('span');
+    content.innerHTML = html;
+    div.appendChild(content);
+
+    const ts = document.createElement('span');
+    ts.className = 'ts';
+    ts.textContent = timeNow();
+    div.appendChild(ts);
+
+    // Add Reply Button
+    const actions = document.createElement('div');
+    actions.className = 'message-actions';
+    const replyBtn = document.createElement('button');
+    replyBtn.className = 'action-btn';
+    replyBtn.innerHTML = '↩';
+    replyBtn.title = 'Reply';
+    replyBtn.onclick = () => setReply(content.innerText);
+    actions.appendChild(replyBtn);
+    div.appendChild(actions);
+
     chatMessages.appendChild(div);
     chatMessages.scrollTop = chatMessages.scrollHeight;
     return div;
@@ -45,12 +84,33 @@ document.addEventListener('DOMContentLoaded', () => {
     return div;
   }
 
+  // Initial message needs a reply button too
+  const firstMsg = chatMessages.querySelector('.message');
+  if (firstMsg) {
+      const actions = document.createElement('div');
+      actions.className = 'message-actions';
+      const replyBtn = document.createElement('button');
+      replyBtn.className = 'action-btn';
+      replyBtn.innerHTML = '↩';
+      replyBtn.onclick = () => setReply(firstMsg.querySelector('span').innerText);
+      actions.appendChild(replyBtn);
+      firstMsg.appendChild(actions);
+  }
+
   chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const text = userInput.value.trim();
+    let text = userInput.value.trim();
     if (!text) return;
 
-    addMessage(text.replace(/</g, '&lt;'), 'user');
+    let displayPrompt = text;
+    let fullPrompt = text;
+
+    if (replyingTo) {
+        fullPrompt = `[CONTEXT REPLY TO: "${replyingTo}"]\n\n${text}`;
+        clearReply();
+    }
+
+    addMessage(displayPrompt.replace(/</g, '&lt;'), 'user');
     userInput.value = '';
 
     const typingDiv = showTyping();
@@ -59,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: text, session_id: sessionId, mode: currentMode })
+        body: JSON.stringify({ prompt: fullPrompt, session_id: sessionId, mode: currentMode })
       });
 
       const reader = res.body.getReader();
@@ -89,6 +149,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         chatMessages.scrollTop = chatMessages.scrollHeight;
       }
+
+      // Finalize message with reply button
+      const actions = document.createElement('div');
+      actions.className = 'message-actions';
+      const replyBtn = document.createElement('button');
+      replyBtn.className = 'action-btn';
+      replyBtn.innerHTML = '↩';
+      replyBtn.onclick = () => setReply(agentText);
+      actions.appendChild(replyBtn);
+      typingDiv.appendChild(actions);
 
       typingDiv.removeAttribute('id');
       const ts = document.createElement('span');
