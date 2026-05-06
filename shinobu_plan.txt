@@ -331,7 +331,7 @@ Agent	Role
 
 
 Update UI:
- - in chat.html make user if typeing '@' then show list of all files and folders in the 
+ - in chat.html make user if typeing '@' then show list of all files and folders in the system except the root and 
 
 
 
