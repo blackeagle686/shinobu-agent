@@ -92,32 +92,195 @@ class FileSearchEngine(BaseTool):
 
 class WebSearchTool(BaseTool):
     name = "web_search_tool"
-    description = "Performs a simulated web search query."
+    description = (
+        "Performs a real web search using Shinobu's 3-level search system. "
+        "Automatically classifies the query into fast (open browser), "
+        "mid (headless search), or deep (scrape + analyze) mode."
+    )
 
-    async def execute(self, query: str) -> ToolResult:
-        # Placeholder — real integration would use DuckDuckGo API or SerpAPI
-        return ToolResult(success=True, output=f"🔍 Web search for '{query}' — integrate with a search API for live results.")
+    def __init__(self, browser_service=None, search_classifier=None, llm=None):
+        self._browser = browser_service
+        self._classifier = search_classifier
+        self._llm = llm
+
+    async def execute(self, query: str, level: str = "auto") -> ToolResult:
+        try:
+            from shinobu.services.webbrowser import WebBrowserService
+            browser = self._browser or WebBrowserService()
+
+            # ── Determine search level ──
+            if level == "auto" and self._classifier:
+                classification = await self._classifier.classify(query)
+                chosen_level = classification.get("level", "mid")
+                reason = classification.get("reason", "")
+            elif level in ("fast", "mid", "deep"):
+                chosen_level = level
+                reason = f"Manually set to {level}"
+            else:
+                chosen_level = "mid"
+                reason = "Default fallback"
+
+            # ── Execute based on level ──
+            if chosen_level == "fast":
+                result = await browser.fast_search(query)
+                output = f"🟢 Fast Search | {reason}\n"
+                if result.get("success"):
+                    url = result.get("url") or result.get("search_url", "")
+                    output += f"🌐 Opened: {url}"
+                else:
+                    output += f"❌ Failed: {result.get('error', 'Unknown error')}"
+                return ToolResult(success=result.get("success", False), output=output)
+
+            elif chosen_level == "mid":
+                result = await browser.mid_search(query)
+                output = f"🟡 Mid Search | {reason}\n"
+                if result.get("success"):
+                    results = result.get("results", [])
+                    output += f"🔍 Found {len(results)} results (engine: {result.get('engine', '?')})\n\n"
+                    for r in results[:5]:
+                        output += f"  {r.get('index', '?')}. {r.get('title', 'Untitled')}\n"
+                        output += f"     {r.get('display_url') or r.get('url', '')}\n"
+                        if r.get("snippet"):
+                            output += f"     {r['snippet'][:120]}\n"
+                        output += "\n"
+                else:
+                    output += f"❌ Failed: {result.get('error', 'Unknown error')}"
+                return ToolResult(success=result.get("success", False), output=output)
+
+            else:  # deep
+                result = await browser.deep_search(query)
+                output = f"🔵 Deep Search | {reason}\n"
+                if result.get("success"):
+                    pages = result.get("pages", [])
+                    scraped = result.get("pages_scraped", 0)
+                    output += f"📚 Scraped {scraped}/{len(pages)} pages"
+                    if result.get("from_cache"):
+                        output += " (cached)"
+                    output += "\n\n"
+
+                    # Summarize with LLM if available
+                    if self._llm and pages:
+                        from shinobu.cognition.core.prompts import build_deep_search_summary_prompt
+                        prompt = build_deep_search_summary_prompt(query, pages, scraped)
+                        summary = await self._llm.generate(prompt, session_id=None, max_tokens=1500)
+                        output += summary
+                    else:
+                        # Fallback: structured text output
+                        for p in pages:
+                            if p.get("scrape_success"):
+                                output += f"📄 {p.get('title', 'Untitled')}\n"
+                                output += f"   {p.get('url', '')}\n"
+                                content = p.get("content", p.get("snippet", ""))
+                                if content:
+                                    output += f"   {content[:300]}...\n"
+                                output += "\n"
+                else:
+                    output += f"❌ Failed: {result.get('error', 'Unknown error')}"
+                return ToolResult(success=result.get("success", False), output=output)
+
+        except Exception as e:
+            return ToolResult(success=False, error=f"Search error: {e}")
 
 
 class DeepSearchTool(BaseTool):
     name = "deep_search_tool"
-    description = "Aggregates multi-source research for a given topic."
+    description = (
+        "Performs deep web research: searches, scrapes top results, "
+        "extracts structured content, and summarizes with LLM analysis. "
+        "Use for research, explanations, comparisons, and detailed understanding."
+    )
 
-    async def execute(self, topic: str) -> ToolResult:
-        return ToolResult(success=True, output=f"📚 Deep search for '{topic}' — aggregating multiple sources (Mock).")
+    def __init__(self, browser_service=None, llm=None):
+        self._browser = browser_service
+        self._llm = llm
+
+    async def execute(self, topic: str, extended: bool = False) -> ToolResult:
+        try:
+            from shinobu.services.webbrowser import WebBrowserService
+            browser = self._browser or WebBrowserService()
+
+            result = await browser.deep_search(topic, extended=extended)
+            if not result.get("success"):
+                return ToolResult(success=False, error=result.get("error", "Deep search failed"))
+
+            pages = result.get("pages", [])
+            scraped = result.get("pages_scraped", 0)
+            output = f"📚 Deep Research: \"{topic}\"\n"
+            output += f"   Pages scraped: {scraped}/{len(pages)}"
+            if result.get("from_cache"):
+                output += " (from cache)"
+            output += "\n\n"
+
+            # LLM summarization
+            if self._llm and pages:
+                from shinobu.cognition.core.prompts import build_deep_search_summary_prompt
+                prompt = build_deep_search_summary_prompt(topic, pages, scraped)
+                summary = await self._llm.generate(prompt, session_id=None, max_tokens=2000)
+                output += summary
+            else:
+                for p in pages:
+                    if p.get("scrape_success"):
+                        output += f"── {p.get('title', 'Untitled')} ──\n"
+                        output += f"URL: {p.get('url', '')}\n"
+                        content = p.get("content", p.get("snippet", ""))
+                        if content:
+                            output += f"{content[:500]}\n"
+                        output += "\n"
+
+            return ToolResult(success=True, output=output)
+        except Exception as e:
+            return ToolResult(success=False, error=f"Deep search error: {e}")
 
 
 class BrowserController(BaseTool):
     name = "browser_controller"
-    description = "Opens a URL in the default system browser."
+    description = (
+        "Controls browser actions: opens URLs in system browser, "
+        "navigates headless to pages, or extracts page links. "
+        "Supports actions: 'open', 'navigate', 'links'."
+    )
 
-    async def execute(self, url: str) -> ToolResult:
+    def __init__(self, browser_service=None):
+        self._browser = browser_service
+
+    async def execute(self, url: str, action: str = "open") -> ToolResult:
         try:
-            process = await asyncio.create_subprocess_shell(f"xdg-open '{url}'")
-            await process.wait()
-            return ToolResult(success=True, output=f"🌐 Opened browser: {url}")
+            from shinobu.services.webbrowser import WebBrowserService
+            browser = self._browser or WebBrowserService()
+
+            if action == "open":
+                result = await browser.open_url(url)
+                if result.get("success"):
+                    return ToolResult(success=True, output=f"🌐 Opened browser: {url}")
+                return ToolResult(success=False, error=result.get("error", "Failed to open"))
+
+            elif action == "navigate":
+                result = await browser.navigate_to(url)
+                if result.get("success"):
+                    output = f"📄 Navigated to: {result.get('title', url)}\n"
+                    output += f"   Engine: {result.get('engine', '?')}\n"
+                    output += f"   Content length: {result.get('content_length', 0)} bytes\n\n"
+                    preview = result.get("text_preview", "")
+                    if preview:
+                        output += f"Preview:\n{preview[:500]}"
+                    return ToolResult(success=True, output=output)
+                return ToolResult(success=False, error=result.get("error", "Navigation failed"))
+
+            elif action == "links":
+                result = await browser.get_page_links(url)
+                if result.get("success"):
+                    links = result.get("links", [])
+                    output = f"🔗 Found {len(links)} links on {url}\n\n"
+                    for link in links:
+                        output += f"  • {link.get('text', '')}\n    {link.get('url', '')}\n"
+                    return ToolResult(success=True, output=output)
+                return ToolResult(success=False, error=result.get("error", "Link extraction failed"))
+
+            else:
+                return ToolResult(success=False, error=f"Unknown action: {action}. Use 'open', 'navigate', or 'links'.")
+
         except Exception as e:
-            return ToolResult(success=False, error=str(e))
+            return ToolResult(success=False, error=f"Browser error: {e}")
 
 
 class MediaPreparer(BaseTool):
