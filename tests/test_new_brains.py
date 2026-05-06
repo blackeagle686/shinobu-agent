@@ -36,8 +36,16 @@ if __name__ == "__main__":
     # Load .env from Giyu (shared credentials)
     giyu_env = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "Giyu", ".env"))
     if os.path.exists(giyu_env):
+        print(f"Loading env from: {giyu_env}")
         load_dotenv(giyu_env, override=True)
     else:
         # Fallback to current dir or global
         load_dotenv(override=True)
+    
+    key = os.getenv("OPENAI_API_KEY")
+    if key:
+        print(f"OPENAI_API_KEY is set (starts with {key[:5]}...)")
+    else:
+        print("OPENAI_API_KEY is NOT set!")
+        
     asyncio.run(test_agent())
