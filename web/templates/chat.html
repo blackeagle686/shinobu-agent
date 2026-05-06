@@ -59,6 +59,14 @@
                     <button class="cancel-reply" id="cancel-reply">×</button>
                 </div>
                 <form id="chat-form" class="input-row">
+                    <div class="mode-select-wrapper">
+                        <select id="mode-selector" class="mode-select-dropdown">
+                            <option value="auto" selected>🧠 Auto</option>
+                            <option value="search">🔍 Search</option>
+                            <option value="chat">💬 Chat</option>
+                            <option value="agent">🤖 Agent</option>
+                        </select>
+                    </div>
                     <input type="text" id="user-input" placeholder="Enter natural language command..." autocomplete="off">
                     <button type="submit" class="send-btn">
                         <span>Execute</span>
