@@ -1,5 +1,5 @@
 
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 import json
 
 def test_ddgs():
