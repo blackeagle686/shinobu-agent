@@ -7,6 +7,7 @@ from .context_memory import ContextMemory
 from .ux_generator import UXGenerator
 from .reflector import ShinobuReflector
 from .generator import ShinobuGenerator
+from .search_classifier import SearchLevelClassifier
 
 __all__ = [
     "IntentInterpreter",
@@ -17,5 +18,6 @@ __all__ = [
     "ContextMemory",
     "UXGenerator",
     "ShinobuReflector",
-    "ShinobuGenerator"
+    "ShinobuGenerator",
+    "SearchLevelClassifier"
 ]

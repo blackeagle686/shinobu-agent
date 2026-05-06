@@ -13,7 +13,7 @@ async def get_shinobu_agent(on_startup_progress=None):
     from .cognition.brains import (
         IntentInterpreter, TaskDecomposer, ActionPlanner, SystemBridge,
         ContextMemory, SafetyDecision, UXGenerator,
-        ShinobuReflector, ShinobuGenerator
+        ShinobuReflector, ShinobuGenerator, SearchLevelClassifier
     )
     from .cognition.loop import ShinobuLoop
     from .services.webbrowser import WebBrowserService
