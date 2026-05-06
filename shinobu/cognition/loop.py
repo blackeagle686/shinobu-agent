@@ -155,6 +155,7 @@ class ShinobuLoop(AgentLoop):
         await memory.add_interaction(session_id, "system", f"Task breakdown: {obj}")
 
         results, summaries, total, task_num = "", [], 0, 0
+        prev_result = "" # Result persists across tasks
 
         while has_task_file() and total < self.MAX_ACTIONS:
             executable = get_executable_tasks()
@@ -178,11 +179,14 @@ class ShinobuLoop(AgentLoop):
 
             # Delegate step processing to async generator
             sr = StepResult()
-            async for ev in stream_task_steps(ctx, task, tid, memory, session_id, sr, intent_data=intent_data):
+            # Pass prev_result to stream_task_steps
+            async for ev in stream_task_steps(ctx, task, tid, memory, session_id, sr, intent_data=intent_data, prev_result=prev_result):
                 yield ev
 
             total += sr.action_count
             results += sr.text
+            if sr.step_output:
+                prev_result = sr.step_output
             finalize_task(tid, task, sr.failed, summaries)
 
             icon, msg = ("✗", "Task failed.") if sr.failed else ("✓", "Task complete.")

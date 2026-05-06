@@ -395,14 +395,15 @@ async def execute_step(ctx, step, task, memory, session_id, prev_result="") -> t
 
 class StepResult:
     """Mutable container passed into stream_task_steps."""
-    __slots__ = ("failed", "text", "action_count")
+    __slots__ = ("failed", "text", "action_count", "step_output")
     def __init__(self):
         self.failed = False
         self.text = ""
         self.action_count = 0
+        self.step_output = ""
 
 
-async def stream_task_steps(ctx, task, task_id, memory, session_id, result: StepResult, intent_data=None):
+async def stream_task_steps(ctx, task, task_id, memory, session_id, result: StepResult, intent_data=None, prev_result=""):
     """Async generator: process all plan steps for a task, yielding stream events."""
     steps = _get_pending_plan_steps(task_id)
     if not steps:
@@ -413,7 +414,7 @@ async def stream_task_steps(ctx, task, task_id, memory, session_id, result: Step
         yield {"type": "chunk", "role": "planner", "content": "  ↳ No steps required.\n"}
         return
 
-    prev_result = ""  # Chain results between steps
+    # prev_result is passed from the loop to chain between tasks
     step_attempts = {}
     while True:
         exec_steps = _get_executable_plan_steps(task_id)
