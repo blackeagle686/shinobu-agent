@@ -333,7 +333,8 @@ Agent	Role
 Update UI:
  - in chat.html make user if typeing '@' then show list of all files and folders in the system except the root and only files which are in user home directory and subdirectories 
  - this for the user to select files and folders to work with
- - in chat.html make attachtmetn button for upload new files to handle with files (pdfs, docs, excel, txt, .md,  code etc )
+ - in chat.html make attachtmetn button for upload new files to handle with files (pdfs, docs, excel, txt, .md, .svg )
+ - when open  
 
 
 
