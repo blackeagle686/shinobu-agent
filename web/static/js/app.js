@@ -285,6 +285,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const typingDiv = showTyping();
     const live = createLivePanel();
     typingDiv.prepend(live.panel);
+    const streamStatus = document.createElement('span');
+    streamStatus.className = 'agent-stream-status';
+    streamStatus.style.cssText = 'color:var(--mint);font-size:0.82rem;display:block;margin-bottom:0.45rem;';
+    typingDiv.appendChild(streamStatus);
     setLiveState(live, 'Running');
 
     try {
@@ -308,14 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
           try {
             const data = JSON.parse(line.substring(6));
             if (data.type === 'status') {
-              typingDiv.innerHTML = `<span style="color:var(--mint);font-size:0.82rem;">🦋 ${data.content}</span>`;
-              if (!typingDiv.querySelector('.agent-live-panel')) {
-                typingDiv.prepend(live.panel);
-              }
-              const statusEl = document.createElement('span');
-              statusEl.style.cssText = 'color:var(--mint);font-size:0.82rem;';
-              statusEl.textContent = `🦋 ${data.content}`;
-              typingDiv.appendChild(statusEl);
+              streamStatus.textContent = `🦋 ${data.content}`;
               pushLiveEvent(live, data.role || 'system', data.content || '');
             } else if (data.type === 'chunk') {
               if (data.role) {
@@ -392,7 +389,8 @@ document.addEventListener('DOMContentLoaded', () => {
       typingDiv.appendChild(ts);
 
     } catch (err) {
-      typingDiv.innerHTML = `<span style="color:var(--pink-hot);">Connection error. Please try again.</span>`;
+      streamStatus.style.color = 'var(--pink-hot)';
+      streamStatus.textContent = 'Connection error. Please try again.';
       setLiveState(live, 'Error');
     }
   });
