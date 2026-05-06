@@ -1,17 +1,18 @@
-"""
-Shinobu Cognition Module — Task-File Driven Architecture.
-"""
-
-from .brains.thinker import ShinobuThinker
-from .brains.planner import ShinobuPlanner
-from .brains.reflector import ShinobuReflector
-from .brains.generator import ShinobuGenerator
 from .loop import ShinobuLoop
+from .brains import (
+    IntentInterpreter, TaskDecomposer, ActionPlanner,
+    SystemBridge, SafetyDecision, UXGenerator,
+    ShinobuReflector, ShinobuGenerator
+)
 
 __all__ = [
-    "ShinobuThinker",
-    "ShinobuPlanner",
-    "ShinobuReflector",
     "ShinobuLoop",
+    "IntentInterpreter",
+    "TaskDecomposer",
+    "ActionPlanner",
+    "SystemBridge",
+    "SafetyDecision",
+    "UXGenerator",
+    "ShinobuReflector",
     "ShinobuGenerator"
 ]
