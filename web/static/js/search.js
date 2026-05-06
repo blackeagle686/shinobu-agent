@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Elements ──
     const searchInput    = document.getElementById('search-input');
     const searchSubmit   = document.getElementById('search-submit');
-    const levelBtns      = document.querySelectorAll('.level-btn');
+    const levelSelector  = document.getElementById('level-selector');
     const classBar       = document.getElementById('classification-bar');
     const classBadge     = document.getElementById('classification-badge');
     const clLevel        = document.getElementById('cl-level');
@@ -56,23 +56,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (queryParam) {
         searchInput.value = queryParam;
         if (levelParam && ['auto', 'fast', 'mid', 'deep'].includes(levelParam)) {
-            levelBtns.forEach(b => b.classList.remove('active'));
-            const targetBtn = document.querySelector(`[data-level="${levelParam}"]`);
-            if (targetBtn) {
-                targetBtn.classList.add('active');
-                currentLevel = levelParam;
-            }
+            levelSelector.value = levelParam;
+            currentLevel = levelParam;
         }
         executeSearch();
     }
 
     // ── Level Selector ──
-    levelBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            levelBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentLevel = btn.dataset.level;
-        });
+    levelSelector.addEventListener('change', () => {
+        currentLevel = levelSelector.value;
     });
 
     // ── Example Queries ──
@@ -364,8 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!url) return;
         searchInput.value = url;
         // Force deep level
-        levelBtns.forEach(b => b.classList.remove('active'));
-        document.querySelector('[data-level="deep"]').classList.add('active');
+        levelSelector.value = 'deep';
         currentLevel = 'deep';
         executeSearch();
     };
