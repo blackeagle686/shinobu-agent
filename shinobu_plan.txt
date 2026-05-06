@@ -338,7 +338,8 @@ Update UI:
  - make agent show the pdf files as embeded in the chat window 
  - add perview template that preview the uploaded file in the chat window
  - the preview should be like the preview of the uploaded file in the chat window
- - preview the edited or 
+ - preview the edited or created files to 
+ - append open file button to opent the preview in the web view 
 
 
 
