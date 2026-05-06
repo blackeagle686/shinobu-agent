@@ -21,8 +21,8 @@ async def get_shinobu_agent(on_startup_progress=None):
     
     # Use generic brains for the base Agent requirements if needed, 
     # but ShinobuLoop will primarily use the specialized ones.
-    from phoenix.framework.agent.core.thinker import AgentThinker
-    from phoenix.framework.agent.core.planner import AgentPlanner
+    from phoenix.framework.agent.cognition.thinker import Thinker as AgentThinker
+    from phoenix.framework.agent.cognition.planner import Planner as AgentPlanner
 
     # Load profile
     profile_path = os.path.join(os.path.dirname(__file__), "profile.json")
