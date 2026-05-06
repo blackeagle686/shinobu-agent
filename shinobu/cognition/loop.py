@@ -27,7 +27,8 @@ class ShinobuLoop(AgentLoop):
                  intent_interpreter=None, task_decomposer=None,
                  action_planner=None, system_bridge=None,
                  context_memory=None, safety_decision=None,
-                 ux_generator=None, generator=None):
+                 ux_generator=None, generator=None,
+                 search_classifier=None, browser_service=None):
         super().__init__(thinker, planner, actor, reflector, analyzer)
         self.intent_interpreter = intent_interpreter
         self.task_decomposer = task_decomposer
@@ -37,6 +38,8 @@ class ShinobuLoop(AgentLoop):
         self.safety_decision = safety_decision
         self.ux_generator = ux_generator
         self.generator = generator or ShinobuGenerator(self.planner.llm)
+        self.search_classifier = search_classifier
+        self.browser_service = browser_service
 
     @property
     def _ctx(self):
@@ -51,6 +54,8 @@ class ShinobuLoop(AgentLoop):
             context_memory=self.context_memory,
             safety_decision=self.safety_decision,
             ux_generator=self.ux_generator,
+            search_classifier=self.search_classifier,
+            browser_service=self.browser_service,
             llm=self.planner.llm, bg=self._background_tasks, retries=self.MAX_RETRIES,
             profile=self.ux_generator.profile if self.ux_generator else None,
         )
