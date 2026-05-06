@@ -210,6 +210,7 @@ async def init_phase(ctx, prompt, memory, session_id, is_resume) -> str:
     # 1. Interpret Intent
     intent_data = await ctx["intent_interpreter"].interpret(prompt)
     log_agent_action("intent_interpreter", "interpret", {"prompt": prompt}, intent_data, "success")
+    memory.session.set("intent_data", intent_data)
     
     # 2. Decompose into tasks
     subtasks = await ctx["task_decomposer"].decompose(prompt, intent_data)
