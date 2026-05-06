@@ -30,9 +30,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const emptyState     = document.getElementById('search-empty');
     const exampleBtns    = document.querySelectorAll('.example-btn');
 
+    const intelCard      = document.getElementById('intelligence-card');
+    const intelBody      = document.getElementById('intel-body');
+    const copyIntelBtn   = document.getElementById('copy-intel');
+
     if (!searchInput) return;
 
     let currentLevel = 'auto';
+
+    // ── Copy Intelligence ──
+    if (copyIntelBtn) {
+        copyIntelBtn.addEventListener('click', () => {
+            const text = intelBody.innerText;
+            navigator.clipboard.writeText(text);
+            copyIntelBtn.textContent = '✅';
+            setTimeout(() => copyIntelBtn.textContent = '📋', 2000);
+        });
+    }
 
     // ── Level Selector ──
     levelBtns.forEach(btn => {
@@ -86,6 +100,8 @@ document.addEventListener('DOMContentLoaded', () => {
         deepBody.innerHTML = '';
         deepSources.innerHTML = '';
         classBar.style.display = 'none';
+        intelCard.style.display = 'none';
+        intelBody.innerHTML = '';
     }
 
     // ── Main Search ──
@@ -120,6 +136,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // Render based on level
             resultsEl.style.display = 'block';
 
+            // Handle LLM Answer (Shinobu Intelligence Card)
+            if (data.llm_answer) {
+                intelBody.innerHTML = simpleMarkdownToHtml(data.llm_answer);
+                intelCard.style.display = 'block';
+            }
+
             if (data.level === 'fast') {
                 renderFastResult(data);
             } else if (data.level === 'mid') {
@@ -134,6 +156,34 @@ document.addEventListener('DOMContentLoaded', () => {
             emptyState.style.display = 'block';
             console.error('Search failed:', err);
         }
+    }
+
+    // ── Helpers ──
+    function simpleMarkdownToHtml(text) {
+        if (!text) return '';
+        
+        let html = text
+            .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+            .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+            .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+            .replace(/^\> (.*$)/gim, '<blockquote>$1</blockquote>')
+            .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
+            .replace(/\*(.*)\*/gim, '<em>$1</em>')
+            .replace(/`(.*?)`/g, '<code>$1</code>')
+            .replace(/\n\n/g, '</p><p>')
+            .replace(/\n/g, '<br>');
+
+        // Convert lists
+        html = html.replace(/^\* (.*$)/gim, '<li>$1</li>');
+        html = html.replace(/<li>(.*?)<\/li>/gs, '<ul><li>$1</li></ul>');
+        html = html.replace(/<\/ul>\s*<ul>/g, '');
+
+        // Detect recommendation patterns and wrap in grid
+        if (html.includes('Recommendation') || html.includes('Finding')) {
+            // Simple check to add the grid class if multiple recommendations exist
+        }
+
+        return `<p>${html}</p>`;
     }
 
     // ── Classification Badge ──
