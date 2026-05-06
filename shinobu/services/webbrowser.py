@@ -372,23 +372,18 @@ class WebBrowserService:
             return await self._mid_search_httpx(query)
 
     async def _mid_search_httpx(self, query: str) -> Dict[str, Any]:
-        """Mid Search fallback via duckduckgo_search library — extremely reliable."""
+        """Mid Search fallback via multiple engines (DDG -> Google) — extremely reliable."""
+        # ── Tier 1: DuckDuckGo Library ──
         try:
             from duckduckgo_search import DDGS
             results = []
-            
-            # Use DDGS context manager for thread-safe search
             with DDGS(headers=self._HEADERS) as ddgs:
-                # Get up to 12 results
-                ddg_results = list(ddgs.text(query, max_results=12))
-                
+                ddg_results = list(ddgs.text(query, max_results=10))
                 for r in ddg_results:
                     url = r.get("href") or r.get("url")
                     if not url: continue
-                    
                     from urllib.parse import urlparse
                     domain = urlparse(url).netloc
-                    
                     results.append({
                         "index": len(results) + 1,
                         "title": r.get("title", "Untitled"),
@@ -396,20 +391,52 @@ class WebBrowserService:
                         "snippet": r.get("body") or r.get("snippet", ""),
                         "display_url": domain,
                         "favicon": f"https://www.google.com/s2/favicons?sz=64&domain_url={domain}",
-                        "image": None # Library doesn't provide thumbnails in text mode
+                        "image": None
                     })
-
-            return {
-                "success": True,
-                "action": "mid_search",
-                "engine": "ddgs_library",
-                "query": query,
-                "result_count": len(results),
-                "results": results,
-            }
+            if results:
+                return {"success": True, "action": "mid_search", "engine": "ddgs_library", "query": query, "result_count": len(results), "results": results}
         except Exception as e:
-            logger.error(f"DDGS library search failed: {e}")
-            return {"success": False, "action": "mid_search", "error": str(e)}
+            logger.warning(f"DDGS library search failed: {e}")
+
+        # ── Tier 2: Google Search (Mobile Fallback) ──
+        try:
+            import httpx
+            from bs4 import BeautifulSoup
+            google_url = f"https://www.google.com/search?q={quote_plus(query)}&hl=en"
+            async with httpx.AsyncClient(headers=self._HEADERS, timeout=self._TIMEOUT, follow_redirects=True) as client:
+                resp = await client.get(google_url)
+                resp.raise_for_status()
+            
+            soup = BeautifulSoup(resp.text, "lxml")
+            results = []
+            # Google search result blocks
+            for g in soup.select("div.g, div.tF2Cxc, div.MjjYud"):
+                if len(results) >= 10: break
+                link = g.select_one("a[href]")
+                title = g.select_one("h3")
+                snippet = g.select_one("div.VwiC3b, div.IsZvec, div.kb0H9d")
+                
+                if link and title:
+                    url = link["href"]
+                    if not url.startswith("http"): continue
+                    from urllib.parse import urlparse
+                    domain = urlparse(url).netloc
+                    results.append({
+                        "index": len(results) + 1,
+                        "title": title.get_text(strip=True),
+                        "url": url,
+                        "snippet": snippet.get_text(strip=True) if snippet else "",
+                        "display_url": domain,
+                        "favicon": f"https://www.google.com/s2/favicons?sz=64&domain_url={domain}",
+                        "image": None
+                    })
+            
+            if results:
+                return {"success": True, "action": "mid_search", "engine": "google_fallback", "query": query, "result_count": len(results), "results": results}
+        except Exception as e:
+            logger.error(f"Google fallback search failed: {e}")
+
+        return {"success": False, "action": "mid_search", "error": "All search engines failed or blocked"}
 
     async def navigate_to(self, url: str) -> Dict[str, Any]:
         """Navigate to a URL in headless browser, return page info."""
