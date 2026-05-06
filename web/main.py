@@ -110,10 +110,12 @@ async def chat_endpoint(req: ChatRequest):
                 browser = SHINOBU_AGENT.browser_service
                 res = await browser.mid_search(req.prompt)
                 if res.get("success"):
-                    ans = f"🟡 Mid Search | Found {len(res['results'])} results.\n\n"
-                    for r in res['results'][:3]:
-                        ans += f"- **[{r['title']}]({r['url']})**\n"
-                    ans += "\nSearch Complete. Redirecting..."
+                    ans = f"### 🔍 Search Results for: *{req.prompt}*\n\n"
+                    for r in res['results'][:5]:
+                        ans += f"#### [{r['title']}]({r['url']})\n"
+                        if r.get('snippet'):
+                            ans += f"> {r['snippet']}\n\n"
+                    ans += "---\n**Search Complete.** Click below to explore deeper in the Search Hub."
                     yield f"data: {json.dumps({'type': 'chunk', 'content': ans})}\n\n"
                 else:
                     yield f"data: {json.dumps({'type': 'chunk', 'content': 'Search failed.'})}\n\n"
