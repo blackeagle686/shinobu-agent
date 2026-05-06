@@ -33,7 +33,7 @@ class TaskDecomposer:
             f"User: {user_input}\n\nReturn a JSON array of subtasks only."
         )
         
-        raw = await self.llm.generate(prompt, session_id=None, max_tokens=500)
+        raw = await self.llm.generate(prompt, session_id=None, max_tokens=350)
         
         try:
             start = raw.find('[')

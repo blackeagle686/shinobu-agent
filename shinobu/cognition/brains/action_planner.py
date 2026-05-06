@@ -68,7 +68,7 @@ class ActionPlanner:
             f"Subtasks: {json.dumps(subtasks)}\n\nReturn JSON array only."
         )
 
-        raw = await self.llm.generate(prompt, session_id=None, max_tokens=800)
+        raw = await self.llm.generate(prompt, session_id=None, max_tokens=500)
 
         try:
             start = raw.find('[')

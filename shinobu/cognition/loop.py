@@ -21,7 +21,7 @@ class ShinobuLoop(AgentLoop):
       IntentInterpreter → TaskDecomposer → ActionPlanner → SystemBridge (→ tools) → UXGenerator.
     """
 
-    MAX_RETRIES = int(os.getenv("SHINOBU_MAX_RETRIES", "2"))
+    MAX_RETRIES = int(os.getenv("SHINOBU_MAX_RETRIES", "1"))
     MAX_ACTIONS = int(os.getenv("SHINOBU_MAX_ACTIONS", "120"))
 
     def __init__(self, thinker, planner, actor, reflector, analyzer,
