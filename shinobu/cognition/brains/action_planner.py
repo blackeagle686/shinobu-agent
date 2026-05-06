@@ -4,7 +4,10 @@ from phoenix.framework.agent.core.profile import AgentProfile
 # Maps intent categories to default tool choices
 TOOL_ROUTING_MAP = {
     "file_operation":   ["file_reader", "file_writer", "file_editor", "file_deleter", "file_search_engine"],
-    "web_search":       ["web_search_tool", "deep_search_tool"],
+    "web_search":       ["web_search_tool", "deep_search_tool", "browser_controller"],
+    "web_search_fast":  ["browser_controller"],
+    "web_search_mid":   ["web_search_tool", "browser_controller"],
+    "web_search_deep":  ["deep_search_tool", "web_search_tool"],
     "media":            ["media_preparer", "browser_controller"],
     "productivity":     ["task_manager", "reminder_system", "document_generator", "spreadsheet_manager"],
     "system_control":   ["system_command_bridge", "process_launcher", "automation_pipeline_builder"],
