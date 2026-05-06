@@ -8,6 +8,9 @@ from typing import Any, Dict
 ACTION_MAP = {
     "file_operation":   "file_reader",
     "web_search":       "web_search_tool",
+    "web_search_fast":  "browser_controller",
+    "web_search_mid":   "web_search_tool",
+    "web_search_deep":  "deep_search_tool",
     "media":            "media_preparer",
     "productivity":     "task_manager",
     "system_control":   "system_command_bridge",

@@ -9,6 +9,7 @@ from .system_bridge import SystemBridge
 from .context_memory import ContextMemory
 from .safety_decision import SafetyDecision
 from .ux_generator import UXGenerator
+from .search_classifier import SearchLevelClassifier
 
 __all__ = [
     "ShinobuThinker",
@@ -22,4 +23,6 @@ __all__ = [
     "ContextMemory",
     "SafetyDecision",
     "UXGenerator",
+    "SearchLevelClassifier",
 ]
+
