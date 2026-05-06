@@ -16,6 +16,10 @@ class IntentInterpreter:
         self.profile = profile
 
     async def interpret(self, user_input: str) -> Dict[str, Any]:
+        quick = self._rule_based_intent(user_input)
+        if quick:
+            return quick
+
         name = self.profile.identity.name if self.profile else "Shinobu Kocho"
         role = self.profile.role.title if self.profile else "User Personal OS Assistant"
         
@@ -33,16 +37,34 @@ class IntentInterpreter:
             f"User: {user_input}\n\nReturn JSON only."
         )
         
-        raw = await self.llm.generate(prompt, session_id=None, max_tokens=300)
+        raw = await self.llm.generate(prompt, session_id=None, max_tokens=220)
         
         try:
             m = re.search(r'\{.*\}', raw, re.DOTALL)
             data = json.loads(m.group(0)) if m else {}
+            intent = data.get("intent", "communication")
+            if intent not in ("communication", "search", "action"):
+                intent = "communication"
             return {
-                "intent": data.get("intent", "communication"),
+                "intent": intent,
                 "entities": data.get("entities", []),
                 "multi_task": bool(data.get("multi_task", False)),
                 "subtasks": data.get("subtasks", [])
             }
         except Exception:
-            return {"intent": "communication", "entities": [], "multi_task": False, "subtasks": []}
+            return self._rule_based_intent(user_input) or {"intent": "communication", "entities": [], "multi_task": False, "subtasks": []}
+
+    def _rule_based_intent(self, user_input: str) -> Dict[str, Any]:
+        text = user_input.lower().strip()
+        entities = re.findall(r"(~\/[^\s]+|\/[^\s]+|https?://[^\s]+|[a-zA-Z0-9_\-]+\.(?:txt|md|json|csv|py|js|ts|pdf|docx|xlsx))", user_input)
+        action_kw = ("create", "write", "edit", "open", "delete", "run", "execute", "save", "file", "folder", "pdf", "document")
+        search_kw = ("search", "look up", "find info", "web", "google", "duckduckgo")
+        is_search = any(k in text for k in search_kw)
+        is_action = any(k in text for k in action_kw) or bool(entities)
+        if is_search and is_action:
+            return {"intent": "action", "entities": entities, "multi_task": True, "subtasks": ["search information", "apply result to requested action"]}
+        if is_action:
+            return {"intent": "action", "entities": entities, "multi_task": (" and " in text), "subtasks": []}
+        if is_search:
+            return {"intent": "search", "entities": entities, "multi_task": False, "subtasks": []}
+        return None

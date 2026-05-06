@@ -33,14 +33,41 @@ class TaskDecomposer:
             f"User: {user_input}\n\nReturn a JSON array of subtasks only."
         )
         
-        raw = await self.llm.generate(prompt, session_id=None, max_tokens=350)
+        raw = await self.llm.generate(prompt, session_id=None, max_tokens=380)
         
         try:
             start = raw.find('[')
             end = raw.rfind(']') + 1
             if start != -1 and end != -1:
-                return json.loads(raw[start:end])
+                parsed = json.loads(raw[start:end])
+                return self._sanitize_subtasks(parsed, user_input)
             else:
                 raise ValueError("No JSON array found")
         except Exception:
             return [{"id": 1, "title": "Execute user action", "description": user_input, "priority": 1}]
+
+    def _sanitize_subtasks(self, subtasks: List[Dict[str, Any]], user_input: str) -> List[Dict[str, Any]]:
+        if not isinstance(subtasks, list) or not subtasks:
+            return [{"id": 1, "title": "Execute user action", "description": user_input, "priority": 1, "dependencies": []}]
+
+        cleaned = []
+        seen_ids = set()
+        for idx, t in enumerate(subtasks, start=1):
+            tid = t.get("id", idx)
+            if not isinstance(tid, int) or tid in seen_ids:
+                tid = idx
+            seen_ids.add(tid)
+            deps = [d for d in t.get("dependencies", []) if isinstance(d, int) and d != tid]
+            cleaned.append({
+                "id": tid,
+                "title": t.get("title", f"Task {tid}"),
+                "description": t.get("description", t.get("title", f"Task {tid}")),
+                "priority": int(t.get("priority", 1) or 1),
+                "dependencies": deps,
+                "status": t.get("status", "pending"),
+            })
+
+        ids = {t["id"] for t in cleaned}
+        for t in cleaned:
+            t["dependencies"] = [d for d in t["dependencies"] if d in ids]
+        return cleaned

@@ -212,8 +212,10 @@ def finalize_task(task_id, task, failed, summaries, result_output=None):
     _mark_task(task_id, status)
     _update_state(task_id, status, task.get("title"))
     if result_output:
-        from ..helpers.backbone import set_last_result
+        from ..helpers.backbone import set_last_result, set_last_tool_result
         set_last_result(result_output)
+        if not str(result_output).startswith("USER_ANSWER:") and "QUESTION_TO_USER:" not in str(result_output):
+            set_last_tool_result(result_output)
     summaries.append(f"{'✗' if failed else '✓'} [{task.get('priority')}] {task.get('title')}")
 
 
@@ -412,7 +414,17 @@ async def execute_step(ctx, step, task, memory, session_id, prev_result="") -> t
             # Substitute {PREV_RESULT} placeholders
             for k, v in args.items():
                 if isinstance(v, str) and "{PREV_RESULT}" in v:
-                    args[k] = v.replace("{PREV_RESULT}", prev_result)
+                    replacement = prev_result
+                    if isinstance(prev_result, str) and prev_result.startswith("USER_ANSWER:"):
+                        from ..helpers.backbone import get_last_tool_result
+                        answer_text = prev_result.replace("USER_ANSWER:", "", 1).strip()
+                        if k in ("content", "text", "body"):
+                            replacement = get_last_tool_result() or prev_result
+                        elif k in ("path", "file_path"):
+                            extracted = _extract_user_path(answer_text)
+                            if extracted:
+                                replacement = extracted
+                    args[k] = v.replace("{PREV_RESULT}", replacement)
             
             # Handle llm_generate pseudo-tool
             if tool_name == "llm_generate":
@@ -534,7 +546,17 @@ async def stream_task_steps(ctx, task, task_id, memory, session_id, result: Step
                 # Substitute {PREV_RESULT} placeholders
                 for k, v in args.items():
                     if isinstance(v, str) and "{PREV_RESULT}" in v:
-                        args[k] = v.replace("{PREV_RESULT}", prev_result)
+                        replacement = prev_result
+                        if isinstance(prev_result, str) and prev_result.startswith("USER_ANSWER:"):
+                            from ..helpers.backbone import get_last_tool_result
+                            answer_text = prev_result.replace("USER_ANSWER:", "", 1).strip()
+                            if k in ("content", "text", "body"):
+                                replacement = get_last_tool_result() or prev_result
+                            elif k in ("path", "file_path"):
+                                extracted = _extract_user_path(answer_text)
+                                if extracted:
+                                    replacement = extracted
+                        args[k] = v.replace("{PREV_RESULT}", replacement)
                 
                 # Handle llm_generate pseudo-tool
                 if tool_name == "llm_generate":
@@ -614,4 +636,9 @@ async def stream_task_steps(ctx, task, task_id, memory, session_id, result: Step
                 yield {"type": "chunk", "role": "reflector", "content": f"    ↳ ✓ {reflection['reflection']}\n"}
             else:
                 yield {"type": "chunk", "role": "reflector", "content": f"    ↳ ⚠ Retry: {reflection['reflection']}\n"}
+
+
+def _extract_user_path(answer: str) -> str:
+    m = re.search(r"(~\/[^\s]+|\/[^\s]+)", answer)
+    return m.group(1) if m else ""
 
