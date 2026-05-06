@@ -298,26 +298,31 @@ class WebBrowserService:
             page = await browser.new_page()
             await page.set_extra_http_headers(self._HEADERS)
 
-            # Navigate to DuckDuckGo
-            await page.goto(duckduckgo_url(query), timeout=int(self._TIMEOUT * 1000))
-            await page.wait_for_load_state("domcontentloaded")
+            # Navigate to DuckDuckGo (Full version for rich results)
+            await page.goto(duckduckgo_url(query, lite=False), timeout=int(self._TIMEOUT * 1000))
+            
+            # Wait for modern results to load
+            try:
+                await page.wait_for_selector("[data-testid='result'], .result", timeout=5000)
+            except: pass
 
             # Extract search results with resilient selectors
             results = await page.evaluate("""() => {
                 const items = [];
-                // Try multiple common result selectors
-                const containers = document.querySelectorAll('.result, .links_main, article');
+                // Modern DDG selectors + legacy fallbacks
+                const containers = document.querySelectorAll('[data-testid="result"], article, .result');
                 
                 containers.forEach((el, i) => {
                     if (items.length >= 10) return;
-                    const titleEl = el.querySelector('.result__a, a.result__a, h2 a');
-                    const snippetEl = el.querySelector('.result__snippet, .snippet, .result__body');
-                    const urlEl = el.querySelector('.result__url, .url');
+                    const titleEl = el.querySelector('[data-testid="result-title-a"], h2 a, .result__a');
+                    const snippetEl = el.querySelector('[data-testid="result-snippet"], .result__snippet, .snippet');
+                    const urlEl = el.querySelector('[data-testid="result-extras-url-link"], .result__url, .url');
+                    const imgEl = el.querySelector('img[data-testid="result-image"], .tile--img__img, img');
                     
-                    const rawUrl = titleEl.href;
-                    const imgEl = el.querySelector('.tile--img__img, .result__icon__img, img');
-                    
-                    if (rawUrl && !rawUrl.includes('duckduckgo.com/y.js')) {
+                    if (titleEl && titleEl.href) {
+                        const rawUrl = titleEl.href;
+                        if (rawUrl.includes('duckduckgo.com/y.js')) return;
+                        
                         items.push({
                             index: items.length + 1,
                             title: titleEl.textContent.trim(),
