@@ -185,3 +185,106 @@ Algorithm: {algorithm}
 Existing File Context:
 {file_context}
 """
+
+
+# ---------------------------------------------------------------------------
+# Search Level Classifier — LLM fallback for ambiguous queries
+# ---------------------------------------------------------------------------
+
+SEARCH_CLASSIFIER_PROMPT = """\
+You are SHINOBU — the search intelligence layer of Hashira-OS.
+Your task: classify a user's search intent into ONE of three levels.
+
+=== SEARCH LEVELS ===
+- "fast": User wants to OPEN a site or page immediately. (e.g. "open YouTube", "go to GitHub")
+- "mid": User wants to FIND or BROWSE results. (e.g. "find best laptops", "search for Python tutorials")
+- "deep": User wants to UNDERSTAND, RESEARCH, or ANALYZE. (e.g. "explain quantum computing", "compare React vs Vue")
+
+=== RULES ===
+1. Respond ONLY with valid JSON.
+2. If the user mentions a specific site/URL → "fast".
+3. If the user wants results/options → "mid".
+4. If the user wants explanation/analysis/summary → "deep".
+
+User Input: {user_input}
+{intent_context}
+
+=== RESPONSE SCHEMA ===
+{{
+    "level": "fast | mid | deep",
+    "reason": "<one sentence explaining why>",
+    "query": "<cleaned search query>"
+}}
+"""
+
+
+def build_search_classifier_prompt(user_input: str, intent: dict = None) -> str:
+    intent_context = ""
+    if intent:
+        intent_context = f"\nPre-parsed Intent: {json.dumps(intent)}\n"
+    return SEARCH_CLASSIFIER_PROMPT.format(
+        user_input=user_input,
+        intent_context=intent_context,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Deep Search — Content Summarization
+# ---------------------------------------------------------------------------
+
+DEEP_SEARCH_SUMMARIZE_PROMPT = """\
+[CHARACTER: SHINOBU KOCHO — Hashira-OS Research Agent]
+
+You have scraped and extracted content from {page_count} web pages for the query: "{query}"
+
+Your task: synthesize the extracted content into a clear, structured, and intelligent response.
+
+=== RULES ===
+1. Combine information from ALL sources — don't just repeat one source.
+2. Use headings and bullet points for readability.
+3. Cite sources by their title when relevant.
+4. If sources conflict, note the disagreement.
+5. Be thorough but concise — quality over quantity.
+6. Maintain your identity as Shinobu Kocho throughout.
+
+=== EXTRACTED CONTENT ===
+{extracted_content}
+
+=== RESPONSE FORMAT ===
+Provide a well-structured answer with:
+- A brief overview
+- Key findings organized by theme
+- Source references
+- Your assessment or recommendation (if applicable)
+
+[SHINOBU KOCHO RESPONSE]:
+"""
+
+
+def build_deep_search_summary_prompt(
+    query: str,
+    pages: list,
+    page_count: int = 0,
+) -> str:
+    # Build extracted content block from scraped pages
+    content_parts = []
+    for i, page in enumerate(pages):
+        if not page.get("scrape_success", False):
+            continue
+        part = f"--- Source {i + 1}: {page.get('title', 'Unknown')} ---\n"
+        part += f"URL: {page.get('url', '')}\n"
+        if page.get("meta_description"):
+            part += f"Description: {page['meta_description']}\n"
+        if page.get("content"):
+            part += f"Content:\n{page['content'][:3000]}\n"
+        elif page.get("snippet"):
+            part += f"Snippet: {page['snippet']}\n"
+        content_parts.append(part)
+
+    extracted = "\n\n".join(content_parts) if content_parts else "No content was successfully extracted."
+
+    return DEEP_SEARCH_SUMMARIZE_PROMPT.format(
+        query=query,
+        page_count=page_count or len(pages),
+        extracted_content=extracted,
+    )
