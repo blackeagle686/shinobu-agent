@@ -153,15 +153,29 @@ class WebBrowserService:
       • Each method is a clean, testable unit of work.
     """
 
-    # Shared httpx client settings
-    _HEADERS = {
-        "User-Agent": (
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-            "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        ),
-        "Accept-Language": "en-US,en;q=0.9",
-    }
-    _TIMEOUT = 15.0
+    # Browser Identity Pool
+    _USER_AGENTS = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0",
+    ]
+
+    @property
+    def _HEADERS(self) -> Dict[str, str]:
+        import random
+        return {
+            "User-Agent": random.choice(self._USER_AGENTS),
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Sec-Fetch-User": "?1",
+            "Upgrade-Insecure-Requests": "1",
+        }
+
+    _TIMEOUT = 20.0
 
     def __init__(self):
         self.cache = SearchCache()
@@ -263,20 +277,23 @@ class WebBrowserService:
             await page.goto(duckduckgo_url(query), timeout=int(self._TIMEOUT * 1000))
             await page.wait_for_load_state("domcontentloaded")
 
-            # Extract search results
+            # Extract search results with resilient selectors
             results = await page.evaluate("""() => {
                 const items = [];
-                // DuckDuckGo HTML version result structure
-                document.querySelectorAll('.result').forEach((el, i) => {
-                    if (i >= 10) return;
-                    const titleEl = el.querySelector('.result__a');
-                    const snippetEl = el.querySelector('.result__snippet');
-                    const urlEl = el.querySelector('.result__url');
-                    if (titleEl) {
+                // Try multiple common result selectors
+                const containers = document.querySelectorAll('.result, .links_main, article');
+                
+                containers.forEach((el, i) => {
+                    if (items.length >= 10) return;
+                    const titleEl = el.querySelector('.result__a, a.result__a, h2 a');
+                    const snippetEl = el.querySelector('.result__snippet, .snippet, .result__body');
+                    const urlEl = el.querySelector('.result__url, .url');
+                    
+                    if (titleEl && titleEl.href && !titleEl.href.includes('duckduckgo.com/y.js')) {
                         items.push({
-                            index: i + 1,
+                            index: items.length + 1,
                             title: titleEl.textContent.trim(),
-                            url: titleEl.href || '',
+                            url: titleEl.href,
                             snippet: snippetEl ? snippetEl.textContent.trim() : '',
                             display_url: urlEl ? urlEl.textContent.trim() : ''
                         });
@@ -317,17 +334,18 @@ class WebBrowserService:
             soup = BeautifulSoup(resp.text, "lxml")
             results = []
 
-            for i, result_div in enumerate(soup.select(".result")):
-                if i >= 10:
+            for i, result_div in enumerate(soup.select(".result, .links_main, article")):
+                if len(results) >= 10:
                     break
-                title_el = result_div.select_one(".result__a")
-                snippet_el = result_div.select_one(".result__snippet")
-                url_el = result_div.select_one(".result__url")
+                title_el = result_div.select_one(".result__a, a.result__a, h2 a")
+                snippet_el = result_div.select_one(".result__snippet, .snippet, .result__body")
+                url_el = result_div.select_one(".result__url, .url")
 
-                if title_el:
-                    href = title_el.get("href", "")
+                if title_el and title_el.get("href"):
+                    href = title_el.get("href")
+                    if "duckduckgo.com/y.js" in href: continue
                     results.append({
-                        "index": i + 1,
+                        "index": len(results) + 1,
                         "title": title_el.get_text(strip=True),
                         "url": href,
                         "snippet": snippet_el.get_text(strip=True) if snippet_el else "",
