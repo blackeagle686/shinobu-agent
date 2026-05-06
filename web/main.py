@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import asyncio
+import time
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
@@ -56,6 +57,10 @@ async def get_results(request: Request):
     ctx = _load_backbone()
     return templates.TemplateResponse(request=request, name="results.html", context={"context": ctx})
 
+@app.get("/search", response_class=HTMLResponse)
+async def get_search(request: Request):
+    return templates.TemplateResponse(request=request, name="search.html")
+
 @app.get("/analysis", response_class=HTMLResponse)
 async def get_analysis(request: Request):
     ctx = _load_backbone()
@@ -68,6 +73,11 @@ class ChatRequest(BaseModel):
     session_id: str
     mode: str = "agent_loop"
 
+class SearchRequest(BaseModel):
+    query: str
+    level: str = "auto"       # auto | fast | mid | deep
+    extended: bool = False     # use 5 pages instead of 3 for deep
+
 @app.post("/api/chat")
 async def chat_endpoint(req: ChatRequest):
     async def event_generator():
@@ -78,6 +88,43 @@ async def chat_endpoint(req: ChatRequest):
             yield f"data: {json.dumps({'type': 'chunk', 'content': f'Error: {str(e)}'})}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+@app.post("/api/search")
+async def search_endpoint(req: SearchRequest):
+    """Direct search API — returns structured search results as JSON."""
+    from Shinobu.shinobu.services.webbrowser import WebBrowserService
+    browser = SHINOBU_AGENT.browser_service if SHINOBU_AGENT else WebBrowserService()
+    classifier = SHINOBU_AGENT.search_classifier if SHINOBU_AGENT else None
+
+    start = time.time()
+
+    # Classify level
+    if req.level == "auto" and classifier:
+        classification = await classifier.classify(req.query)
+        level = classification.get("level", "mid")
+        reason = classification.get("reason", "")
+    else:
+        level = req.level if req.level in ("fast", "mid", "deep") else "mid"
+        reason = f"Manually set to {level}"
+
+    # Execute search
+    if level == "fast":
+        result = await browser.fast_search(req.query)
+    elif level == "mid":
+        result = await browser.mid_search(req.query)
+    else:
+        result = await browser.deep_search(req.query, extended=req.extended)
+
+    elapsed = round(time.time() - start, 2)
+
+    return {
+        "level": level,
+        "reason": reason,
+        "elapsed_seconds": elapsed,
+        "query": req.query,
+        **result,
+    }
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
