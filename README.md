@@ -60,6 +60,18 @@ graph TD
 
 ---
 
+### 🔍 3-Level Intelligent Search System
+Shinobu features a tiered research engine that adapts to the complexity of your request:
+
+1.  **⚡ Fast Search**: Instant redirection. Best for "Open YouTube" or "Go to Twitter".
+2.  **🎯 Mid Search**: Result aggregation. Scrapes search engines to provide a structured overview of links and snippets.
+3.  **🧠 Deep Search**: Comprehensive analysis. Scrapes multiple high-authority sources, extracts full-text content, and uses LLM synthesis to provide a detailed research report.
+4.  **🤖 Auto Mode**: The default setting where Shinobu's `IntentInterpreter` decides the optimal depth based on your natural language prompt.
+
+---
+
+---
+
 ### 🧠 The Hybrid Cognitive Architecture (7 Brains)
 
 #### LLM-Powered Brains
