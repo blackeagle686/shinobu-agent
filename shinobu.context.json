@@ -1,0 +1,56 @@
+{
+  "context_id": "a3720f22-166c-4697-80a8-35092cb17ab7",
+  "metadata": {
+    "created_at": "2026-05-06T16:03:08.179884",
+    "updated_at": "2026-05-06T16:03:08.180740",
+    "original_prompt": "Create a summary of the project architecture and save it as a text file in my Downloads/shinobu directory."
+  },
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Read project architecture information",
+      "description": "Access and read the source material containing details of the project architecture to be summarized.",
+      "priority": 1,
+      "status": "pending"
+    },
+    {
+      "id": 2,
+      "title": "Summarize project architecture",
+      "description": "Extract key components, structure, and relationships from the architecture information into a concise summary.",
+      "priority": 1,
+      "status": "pending"
+    },
+    {
+      "id": 3,
+      "title": "Create text file with summary",
+      "description": "Save the generated summary as a text file named 'summary.txt' in the directory '~/Downloads/shinobu/'.",
+      "priority": 1,
+      "status": "pending"
+    }
+  ],
+  "plans": [],
+  "generations": [],
+  "execution_state": {
+    "completed_steps": [],
+    "pending_steps": [
+      {
+        "id": 1,
+        "title": "Read project architecture information"
+      },
+      {
+        "id": 2,
+        "title": "Summarize project architecture"
+      },
+      {
+        "id": 3,
+        "title": "Create text file with summary"
+      }
+    ],
+    "failed_steps": []
+  },
+  "memory": {},
+  "intent_logs": [],
+  "safety_events": [],
+  "session_context": {},
+  "automation_pipelines": []
+}
