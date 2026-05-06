@@ -1,6 +1,7 @@
 """
 Shinobu Prompts — centralised prompt templates for all cognition modules.
 """
+import json
 
 # ---------------------------------------------------------------------------
 # Loop / Fast Answer
