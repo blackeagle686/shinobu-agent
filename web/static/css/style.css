@@ -195,7 +195,8 @@ a {
 .dashboard-layout, .chat-layout {
   display: grid;
   grid-template-columns: 280px 1fr;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   transition: grid-template-columns 0.4s var(--ease-out-expo);
 }
 
@@ -478,11 +479,7 @@ a {
    CHAT — Full chat interface
    ═══════════════════════════════════════════════════ */
 .chat-layout {
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  height: 100vh;
   transform: translateZ(0);
-  overflow: hidden;
 }
 
 .chat-panel {
@@ -752,9 +749,7 @@ a {
    DASHBOARD LAYOUT — results & analysis
    ═══════════════════════════════════════════════════ */
 .dashboard-layout {
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  min-height: 100vh;
+  background: var(--bg-primary);
 }
 
 .content-area {
