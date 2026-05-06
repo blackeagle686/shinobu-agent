@@ -79,28 +79,8 @@
   function animate() {
     ctx.clearRect(0, 0, W, H);
     
-    // Draw connections first (more efficient blending)
-    ctx.lineWidth = 0.5;
-    for (let i = 0; i < particles.length; i++) {
-      const p1 = particles[i];
-      for (let j = i + 1; j < particles.length; j++) {
-        const p2 = particles[j];
-        const dx = p1.x - p2.x;
-        const dy = p1.y - p2.y;
-        const distSq = dx * dx + dy * dy;
-        
-        if (distSq < 10000) { // 100 * 100
-            const d = Math.sqrt(distSq);
-            ctx.globalAlpha = 0.05 * (1 - d / 100);
-            ctx.strokeStyle = 'rgba(167, 139, 250, 0.4)';
-            ctx.beginPath();
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.stroke();
-        }
-      }
-    }
-
+    // Connections loop removed for extreme performance boost
+    
     ctx.globalAlpha = 1;
     particles.forEach(p => { p.update(); p.draw(); });
     requestAnimationFrame(animate);
