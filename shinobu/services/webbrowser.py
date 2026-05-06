@@ -329,50 +329,39 @@ class WebBrowserService:
                             url: rawUrl,
                             image: imgEl ? imgEl.src : null,
                             snippet: snippetEl ? snippetEl.textContent.trim() : '',
-                            display_url: urlEl ? urlEl.textContent.trim() : ''
-                        });
-                    }
-                });
-                return items;
-            }""")
-
-            # Step 2: Clean URLs and Deduplicate
-            seen_urls = set()
-            cleaned_results = []
-            for r in results:
-                real_url = clean_ddg_url(r["url"])
-                if real_url not in seen_urls:
-                    from urllib.parse import urlparse
-                    domain = urlparse(real_url).netloc
-                    r["url"] = real_url
-                    r["favicon"] = f"https://www.google.com/s2/favicons?sz=64&domain_url={domain}"
-                    cleaned_results.append(r)
-                    seen_urls.add(real_url)
-
-            await page.close()
-
-            return {
-                "success": True,
-                "action": "mid_search",
-                "engine": "playwright",
-                "query": query,
-                "result_count": len(cleaned_results),
-                "results": cleaned_results,
-            }
-        except Exception as e:
-            logger.error(f"Playwright mid search failed: {e}")
-            # Fallback to httpx
-            return await self._mid_search_httpx(query)
-
-    async def _mid_search_httpx(self, query: str) -> Dict[str, Any]:
-        """Mid Search fallback via httpx — no JS rendering."""
-        import httpx
-        from bs4 import BeautifulSoup
-
-        try:
-            async with httpx.AsyncClient(
-                headers=self._HEADERS,
-                timeout=self._TIMEOUT,
+                            display            # Extract with resilient selectors for DDG Lite
+            # DDG Lite uses .result block or .links_main
+            containers = soup.select(".result, .links_main, .web-result")
+            
+            for i, result_div in enumerate(containers):
+                if len(results) >= 12: # Get a few more to filter
+                    break
+                
+                # Standard DDG Lite selectors
+                title_el = result_div.select_one(".result__a, .result__title a, a.result-link")
+                snippet_el = result_div.select_one(".result__snippet, .snippet, .result__body")
+                url_el = result_div.select_one(".result__url, .url")
+                
+                if title_el and title_el.get("href"):
+                    raw_url = title_el.get("href")
+                    # Skip ads and internal redirects
+                    if "duckduckgo.com/y.js" in raw_url: continue
+                    
+                    real_url = clean_ddg_url(raw_url)
+                    if real_url and real_url not in results_seen:
+                        from urllib.parse import urlparse
+                        domain = urlparse(real_url).netloc
+                        
+                        results.append({
+                            "index": len(results) + 1,
+                            "title": title_el.get_text(strip=True),
+                            "url": real_url,
+                            "snippet": snippet_el.get_text(strip=True) if snippet_el else "",
+                            "display_url": url_el.get_text(strip=True) if url_el else "",
+                            "favicon": f"https://www.google.com/s2/favicons?sz=64&domain_url={domain}",
+                            "image": None
+                        })
+                        results_seen.add(real_url)UT,
                 follow_redirects=True,
             ) as client:
                 resp = await client.get(duckduckgo_url(query))
