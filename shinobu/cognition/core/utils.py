@@ -403,6 +403,7 @@ async def stream_task_steps(ctx, task, task_id, memory, session_id, result: Step
         yield {"type": "chunk", "role": "planner", "content": "  ↳ No steps required.\n"}
         return
 
+    prev_result = ""  # Chain results between steps
     step_attempts = {}
     while True:
         exec_steps = _get_executable_plan_steps(task_id)
@@ -424,30 +425,48 @@ async def stream_task_steps(ctx, task, task_id, memory, session_id, result: Step
 
         yield {"type": "status", "role": "actor", "content": f"  ↳ Generating ({len(to_run)} steps)..."}
         
-        # Bypass Generator if direct_action exists
-        gen_results = []
-        for s in to_run:
-            if s.get("direct_action"):
-                gen_results.append({"direct_action": s.get("direct_action")})
-            else:
-                try:
-                    res = await ctx["generator"].generate_step(s, task)
-                    gen_results.append(res)
-                except Exception as e:
-                    gen_results.append(e)
-
-        for step, gen in zip(to_run, gen_results):
+        # Process steps sequentially for dependency chaining
+        for step in to_run:
             sid = step.get("plan_step_id")
-            if isinstance(gen, Exception):
-                yield {"type": "chunk", "role": "system", "content": f"    ↳ ⚠ {gen}\n"}
-                continue
+            direct = step.get("direct_action")
             approach = step.get("solution", {}).get("approach", "")
+            
             yield {"type": "chunk", "role": "planner",
                    "content": f"  ↳ Step {step.get('step_index', '?')} ({step.get('type')}): {approach[:60]}...\n"}
-            
-            if "direct_action" in gen:
-                actions = [{"tool": gen["direct_action"].get("tool"), "kwargs": gen["direct_action"].get("args", {})}]
+
+            if direct:
+                tool_name = direct.get("tool", "")
+                args = dict(direct.get("args", {}))
+                
+                # Substitute {PREV_RESULT} placeholders
+                for k, v in args.items():
+                    if isinstance(v, str) and "{PREV_RESULT}" in v:
+                        args[k] = v.replace("{PREV_RESULT}", prev_result)
+                
+                # Handle llm_generate pseudo-tool
+                if tool_name == "llm_generate":
+                    instruction = args.get("instruction", "")
+                    extra_ctx = args.get("context", prev_result or "")
+                    gen_prompt = f"You are Shinobu, a helpful assistant. {instruction}"
+                    if extra_ctx:
+                        gen_prompt += f"\n\nContext:\n{extra_ctx}"
+                    
+                    yield {"type": "status", "role": "actor", "content": "  ↳ Generating content..."}
+                    generated = await ctx["llm"].generate(gen_prompt, session_id=session_id, max_tokens=1500)
+                    prev_result = generated
+                    _mark_plan_step(sid, "done")
+                    result.text += f"\nStep 'llm_generate': Content generated ({len(generated)} chars).\n"
+                    yield {"type": "chunk", "role": "reflector", "content": f"    ↳ ✓ Generated content ({len(generated)} chars)\n"}
+                    continue
+                
+                actions = [{"tool": tool_name, "kwargs": args}]
             else:
+                try:
+                    gen = await ctx["generator"].generate_step(step, task)
+                except Exception as e:
+                    yield {"type": "chunk", "role": "system", "content": f"    ↳ ⚠ {e}\n"}
+                    continue
+                
                 blocks = gen.get("generation_blocks", [])
                 if any(b.get("status") == "syntax_error" for b in blocks):
                     txt, ref = await handle_syntax_error(ctx, step, task, blocks, memory, session_id)
@@ -466,6 +485,7 @@ async def stream_task_steps(ctx, task, task_id, memory, session_id, result: Step
             action_result, actions, executed = await validate_and_execute(ctx, actions)
             if executed:
                 result.action_count += len(actions)
+                prev_result = action_result
             else:
                 label = "⛔" if is_sensitive_action(actions) else "⚠"
                 yield {"type": "chunk", "role": "system", "content": f"    ↳ {label} {action_result}\n"}
@@ -483,3 +503,4 @@ async def stream_task_steps(ctx, task, task_id, memory, session_id, result: Step
                 yield {"type": "chunk", "role": "reflector", "content": f"    ↳ ✓ {reflection['reflection']}\n"}
             else:
                 yield {"type": "chunk", "role": "reflector", "content": f"    ↳ ⚠ Retry: {reflection['reflection']}\n"}
+
