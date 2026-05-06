@@ -484,3 +484,53 @@ class AutomationPipelineBuilder(BaseTool):
         with open(path, "w") as f:
             json.dump(pipeline, f, indent=2)
         return ToolResult(success=True, output=f"🔗 Pipeline '{name}' created with {len(steps)} steps → {path}")
+class SystemChecker(BaseTool):
+    name = "system_checker"
+    description = "Checks installed office apps (LibreOffice, WPS, etc.) and default document associations."
+
+    async def execute(self, action: str = "check_office") -> ToolResult:
+        try:
+            if action == "check_office":
+                apps = ["libreoffice", "wps", "msoffice", "abiword"]
+                installed = []
+                for app in apps:
+                    proc = await asyncio.create_subprocess_shell(f"which {app}", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    await proc.communicate()
+                    if proc.returncode == 0:
+                        installed.append(app)
+                
+                # Check defaults
+                mimetypes = {
+                    "text/plain": "txt",
+                    "application/pdf": "pdf",
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+                    "application/vnd.oasis.opendocument.text": "odt"
+                }
+                defaults = {}
+                for mime, ext in mimetypes.items():
+                    proc = await asyncio.create_subprocess_shell(f"xdg-mime query default {mime}", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    stdout, _ = await proc.communicate()
+                    defaults[ext] = stdout.decode().strip()
+                
+                return ToolResult(success=True, output=f"Installed Office Apps: {installed}\nDefault Associations: {json.dumps(defaults, indent=2)}")
+            return ToolResult(success=False, error="Unknown action")
+        except Exception as e:
+            return ToolResult(success=False, error=str(e))
+
+
+class PDFViewer(BaseTool):
+    name = "pdf_viewer"
+    description = "Opens a PDF file using the system default PDF viewer."
+
+    async def execute(self, path: str) -> ToolResult:
+        try:
+            path = os.path.expanduser(path)
+            if not os.path.exists(path):
+                return ToolResult(success=False, error=f"File not found: {path}")
+            
+            # Use xdg-open on Linux
+            proc = await asyncio.create_subprocess_shell(f"xdg-open '{path}'")
+            await proc.wait()
+            return ToolResult(success=True, output=f"📂 Opening PDF in system viewer: {path}")
+        except Exception as e:
+            return ToolResult(success=False, error=str(e))
