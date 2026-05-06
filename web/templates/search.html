@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shinobu Search | 3-Level Intelligence</title>
+    <meta name="description" content="Shinobu's 3-Level Search System — Fast, Mid, and Deep search powered by Hashira-OS intelligence.">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/search.css">
+</head>
+<body>
+    <canvas id="particle-canvas"></canvas>
+
+    <div class="dashboard-layout">
+        <aside class="nav-bar">
+            <div class="nav-brand">
+                <div class="nav-brand-icon">S</div>
+                <h2>Shinobu OS</h2>
+            </div>
+            
+            <a href="/" class="nav-link">🏠 Overview</a>
+            <a href="/chat" class="nav-link">💬 Live Chat</a>
+            <a href="/search" class="nav-link active">🔍 Search</a>
+            <a href="/results" class="nav-link">📋 Operation Cards</a>
+            <a href="/analysis" class="nav-link">📈 Analytics</a>
+            
+            <div class="nav-session">
+                <p>Search Engine: Active</p>
+            </div>
+        </aside>
+
+        <main class="content-area">
+            <!-- Search Header -->
+            <header class="page-header">
+                <h1>Shinobu Search</h1>
+                <p>3-Level intelligent search — Fast ⚡ · Mid 🎯 · Deep 🧠</p>
+            </header>
+
+            <!-- Search Bar -->
+            <div class="search-container" id="search-container">
+                <div class="search-bar">
+                    <div class="search-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </div>
+                    <input type="text" id="search-input" placeholder="Ask Shinobu to search anything..." autocomplete="off">
+                    <button type="button" id="search-submit" class="search-submit-btn">
+                        <span>Search</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </button>
+                </div>
+
+                <!-- Level Selector -->
+                <div class="level-selector">
+                    <button class="level-btn active" data-level="auto" id="level-auto">
+                        <span class="level-icon">🤖</span>
+                        <span class="level-label">Auto</span>
+                        <span class="level-desc">Shinobu decides</span>
+                    </button>
+                    <button class="level-btn" data-level="fast" id="level-fast">
+                        <span class="level-icon">⚡</span>
+                        <span class="level-label">Fast</span>
+                        <span class="level-desc">Open instantly</span>
+                    </button>
+                    <button class="level-btn" data-level="mid" id="level-mid">
+                        <span class="level-icon">🎯</span>
+                        <span class="level-label">Mid</span>
+                        <span class="level-desc">Browse results</span>
+                    </button>
+                    <button class="level-btn" data-level="deep" id="level-deep">
+                        <span class="level-icon">🧠</span>
+                        <span class="level-label">Deep</span>
+                        <span class="level-desc">Research & analyze</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Classification Badge (shows what Shinobu decided) -->
+            <div class="classification-bar" id="classification-bar" style="display:none;">
+                <div class="classification-badge" id="classification-badge">
+                    <span class="classification-level" id="cl-level"></span>
+                    <span class="classification-reason" id="cl-reason"></span>
+                    <span class="classification-time" id="cl-time"></span>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div class="search-loading" id="search-loading" style="display:none;">
+                <div class="search-spinner">
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-ring"></div>
+                </div>
+                <p class="loading-text" id="loading-text">Shinobu is thinking...</p>
+            </div>
+
+            <!-- Results Area -->
+            <div class="search-results" id="search-results" style="display:none;">
+                <!-- Fast Result -->
+                <div class="fast-result" id="fast-result" style="display:none;">
+                    <div class="fast-result-card">
+                        <div class="fast-icon">🌐</div>
+                        <div class="fast-info">
+                            <h3 id="fast-title">Opened in browser</h3>
+                            <p id="fast-url" class="fast-url"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mid/Deep Results Grid -->
+                <div class="results-stats" id="results-stats" style="display:none;">
+                    <div class="stat-pill">
+                        <span class="stat-pill-label">Results</span>
+                        <span class="stat-pill-value" id="stat-count">0</span>
+                    </div>
+                    <div class="stat-pill">
+                        <span class="stat-pill-label">Engine</span>
+                        <span class="stat-pill-value" id="stat-engine">—</span>
+                    </div>
+                    <div class="stat-pill">
+                        <span class="stat-pill-label">Time</span>
+                        <span class="stat-pill-value" id="stat-time">—</span>
+                    </div>
+                </div>
+
+                <div class="results-grid" id="results-grid"></div>
+
+                <!-- Deep Search Content -->
+                <div class="deep-content" id="deep-content" style="display:none;">
+                    <div class="deep-content-card">
+                        <div class="deep-header">
+                            <span class="deep-badge">🧠 Deep Analysis</span>
+                            <span class="deep-pages" id="deep-pages">0 pages scraped</span>
+                        </div>
+                        <div class="deep-body" id="deep-body"></div>
+                        <div class="deep-sources" id="deep-sources"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div class="search-empty" id="search-empty">
+                <div class="empty-glow"></div>
+                <div class="empty-icon">🦋</div>
+                <h3>Ready to Search</h3>
+                <p>Type a query and Shinobu will choose the best search strategy.</p>
+                <div class="example-queries">
+                    <button class="example-btn" data-query="open YouTube">⚡ open YouTube</button>
+                    <button class="example-btn" data-query="find best AI frameworks 2026">🎯 find best AI frameworks</button>
+                    <button class="example-btn" data-query="explain how transformers work in AI">🧠 explain transformers in AI</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/js/particles.js"></script>
+    <script src="/static/js/search.js"></script>
+</body>
+</html>
