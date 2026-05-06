@@ -78,29 +78,31 @@
 
   function animate() {
     ctx.clearRect(0, 0, W, H);
-    particles.forEach(p => { p.update(); p.draw(); });
-
-    // Draw connections
-    ctx.globalAlpha = 0.08;
-    ctx.strokeStyle = 'rgba(167, 139, 250, 0.4)';
+    
+    // Draw connections first (more efficient blending)
     ctx.lineWidth = 0.5;
     for (let i = 0; i < particles.length; i++) {
+      const p1 = particles[i];
       for (let j = i + 1; j < particles.length; j++) {
-        const dx = particles[i].x - particles[j].x;
-        const dy = particles[i].y - particles[j].y;
-        if (Math.abs(dx) < 100 && Math.abs(dy) < 100) {
-          const d = Math.sqrt(dx * dx + dy * dy);
-          if (d < 100) {
-            ctx.globalAlpha = 0.06 * (1 - d / 100);
+        const p2 = particles[j];
+        const dx = p1.x - p2.x;
+        const dy = p1.y - p2.y;
+        const distSq = dx * dx + dy * dy;
+        
+        if (distSq < 10000) { // 100 * 100
+            const d = Math.sqrt(distSq);
+            ctx.globalAlpha = 0.05 * (1 - d / 100);
+            ctx.strokeStyle = 'rgba(167, 139, 250, 0.4)';
             ctx.beginPath();
-            ctx.moveTo(particles[i].x, particles[i].y);
-            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
             ctx.stroke();
-          }
         }
       }
     }
+
     ctx.globalAlpha = 1;
+    particles.forEach(p => { p.update(); p.draw(); });
     requestAnimationFrame(animate);
   }
 
