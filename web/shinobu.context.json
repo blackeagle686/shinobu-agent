@@ -2,7 +2,7 @@
   "context_id": "47e7ed57-c71b-436f-830e-2ed076ec8fe1",
   "metadata": {
     "created_at": "2026-05-06T17:17:17.741206",
-    "updated_at": "2026-05-06T17:17:27.393989",
+    "updated_at": "2026-05-06T17:18:09.354687",
     "original_prompt": "search about egypt then put the search results in egypt_srch.txt"
   },
   "tasks": [
@@ -22,7 +22,7 @@
       "dependencies": [
         1
       ],
-      "status": "pending"
+      "status": "failed"
     },
     {
       "id": 3,
@@ -32,7 +32,7 @@
       "dependencies": [
         2
       ],
-      "status": "pending"
+      "status": "failed"
     }
   ],
   "plans": [
@@ -58,7 +58,7 @@
     {
       "plan_step_id": 2,
       "task_id": 2,
-      "status": "pending",
+      "status": "failed",
       "type": "ask_user",
       "solution": {
         "approach": "Use ask_user"
@@ -85,15 +85,16 @@
     ],
     "pending_steps": [
       {
-        "id": 2,
-        "title": "Ask user for file save location"
-      },
-      {
         "id": 3,
         "title": "Save search results to egypt_srch.txt"
       }
     ],
-    "failed_steps": []
+    "failed_steps": [
+      {
+        "id": 2,
+        "title": "Ask user for file save location"
+      }
+    ]
   },
   "memory": {},
   "intent_logs": [],
