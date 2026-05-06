@@ -282,24 +282,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ── Card Builders ──
-    function createResultCard(result, index) {
-        const card = document.createElement('div');
-        card.className = 'search-result-card';
-        card.style.animationDelay = `${index * 0.08}s`;
+    function createResultCard(r, index) {
+        const div = document.createElement('div');
+        div.className = 'search-result-card fade-in';
+        div.style.animationDelay = `${index * 0.08}s`;
+        
+        let imgHtml = '';
+        if (r.image) {
+            imgHtml = `<div class="result-image"><img src="${r.image}" alt="preview" onerror="this.parentElement.style.display='none'"></div>`;
+        } else if (r.favicon) {
+            imgHtml = `<div class="result-favicon-box"><img src="${r.favicon}" class="result-favicon"></div>`;
+        }
 
-        const displayUrl = result.display_url || extractDomain(result.url || '');
-
-        card.innerHTML = `
-            <div class="result-index">${result.index || index + 1}</div>
-            <div class="result-title">${escapeHtml(result.title || 'Untitled')}</div>
-            <div class="result-url">${escapeHtml(displayUrl)}</div>
-            <div class="result-snippet">${escapeHtml(result.snippet || '')}</div>
+        div.innerHTML = `
+            ${imgHtml}
+            <div class="result-index">${r.index || index + 1}</div>
+            <div class="result-title">${escapeHtml(r.title || 'Untitled')}</div>
+            <div class="result-url">${escapeHtml(r.display_url || extractDomain(r.url || ''))}</div>
+            <div class="result-snippet">${escapeHtml(r.snippet || '')}</div>
             <div class="result-actions">
-                <button class="result-action-btn open-btn" onclick="window.open('${escapeAttr(result.url || '#')}', '_blank')">↗ Open</button>
-                <button class="result-action-btn" onclick="deepSearchUrl('${escapeAttr(result.url || '')}')">🧠 Deep Scan</button>
+                <button class="result-action-btn open-btn" onclick="window.open('${escapeAttr(r.url || '#')}', '_blank')">↗ Open</button>
+                <button class="result-action-btn" onclick="deepSearchUrl('${escapeAttr(r.url || '')}')">🧠 Deep Scan</button>
             </div>`;
 
-        return card;
+        return div;
     }
 
     function createDeepCard(page, index) {
