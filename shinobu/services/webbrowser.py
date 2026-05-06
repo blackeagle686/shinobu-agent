@@ -1,0 +1,649 @@
+"""
+WebBrowserService — Shinobu's browser execution engine.
+
+This is a PURE EXECUTION layer. No intelligence lives here.
+Shinobu (via SearchLevelClassifier) decides WHAT to do;
+this service decides HOW to do it.
+
+Three tiers:
+  🟢 Fast  — xdg-open (system browser, instant)
+  🟡 Mid   — Playwright headless (controlled browsing)
+  🔵 Deep  — httpx + BeautifulSoup (scraping + extraction)
+"""
+
+import os
+import re
+import json
+import asyncio
+import hashlib
+import time
+import logging
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+from urllib.parse import quote_plus, urljoin, urlparse
+from enum import Enum
+
+logger = logging.getLogger("shinobu.services.webbrowser")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Search Level Enum
+# ─────────────────────────────────────────────────────────────────────────────
+
+class SearchLevel(Enum):
+    FAST = "fast"    # Open browser, redirect — zero processing
+    MID  = "mid"     # Headless browse, navigate, collect links
+    DEEP = "deep"    # Scrape, extract, structure, prepare for LLM
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Search Cache (Deep Search persistence with TTL)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class SearchCache:
+    """
+    File-based cache for Deep Search results.
+    Stores processed data (not raw HTML) with TTL expiration.
+    """
+
+    DEFAULT_TTL_HOURS = 24  # general knowledge
+    NEWS_TTL_HOURS = 6      # trending / time-sensitive
+
+    def __init__(self, cache_dir: Optional[str] = None):
+        self.cache_dir = Path(cache_dir or os.path.expanduser("~/.shinobu_search_cache"))
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+
+    def _key(self, query: str) -> str:
+        return hashlib.sha256(query.lower().strip().encode()).hexdigest()[:16]
+
+    def _path(self, query: str) -> Path:
+        return self.cache_dir / f"{self._key(query)}.json"
+
+    def get(self, query: str, ttl_hours: Optional[int] = None) -> Optional[Dict]:
+        """Retrieve cached result if it exists and hasn't expired."""
+        path = self._path(query)
+        if not path.exists():
+            return None
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            ttl = ttl_hours or self.DEFAULT_TTL_HOURS
+            age_hours = (time.time() - data.get("timestamp", 0)) / 3600
+            if age_hours > ttl:
+                path.unlink(missing_ok=True)
+                return None
+            logger.info(f"Cache hit for '{query}' (age: {age_hours:.1f}h)")
+            return data
+        except Exception:
+            return None
+
+    def put(self, query: str, results: Dict) -> None:
+        """Store processed search results."""
+        results["timestamp"] = time.time()
+        results["query"] = query
+        try:
+            self._path(query).write_text(
+                json.dumps(results, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+        except Exception as e:
+            logger.warning(f"Cache write failed: {e}")
+
+    def clear(self) -> int:
+        """Remove all cached entries. Returns count of removed files."""
+        count = 0
+        for f in self.cache_dir.glob("*.json"):
+            f.unlink(missing_ok=True)
+            count += 1
+        return count
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# URL & Known-Site Helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Direct-open sites: skip search, go straight to URL
+KNOWN_SITES = {
+    "youtube":    "https://www.youtube.com",
+    "netflix":    "https://www.netflix.com",
+    "github":     "https://github.com",
+    "twitter":    "https://twitter.com",
+    "x":          "https://x.com",
+    "reddit":     "https://www.reddit.com",
+    "google":     "https://www.google.com",
+    "spotify":    "https://open.spotify.com",
+    "wikipedia":  "https://www.wikipedia.org",
+    "amazon":     "https://www.amazon.com",
+    "facebook":   "https://www.facebook.com",
+    "instagram":  "https://www.instagram.com",
+    "linkedin":   "https://www.linkedin.com",
+    "twitch":     "https://www.twitch.tv",
+    "stackoverflow": "https://stackoverflow.com",
+}
+
+_URL_RE = re.compile(r"https?://\S+", re.IGNORECASE)
+
+
+def resolve_url(query: str) -> Optional[str]:
+    """If query is a URL or a known site name, return the URL. Else None."""
+    # Direct URL
+    m = _URL_RE.search(query)
+    if m:
+        return m.group(0)
+    # Known site name
+    key = query.strip().lower().replace(" ", "")
+    return KNOWN_SITES.get(key)
+
+
+def duckduckgo_url(query: str) -> str:
+    """Build a DuckDuckGo search URL."""
+    return f"https://html.duckduckgo.com/html/?q={quote_plus(query)}"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# WebBrowserService
+# ─────────────────────────────────────────────────────────────────────────────
+
+class WebBrowserService:
+    """
+    Shinobu's browser execution engine.
+
+    Design Rules:
+      • No intelligence — only execution.
+      • Shinobu (SearchLevelClassifier) controls everything.
+      • Each method is a clean, testable unit of work.
+    """
+
+    # Shared httpx client settings
+    _HEADERS = {
+        "User-Agent": (
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        ),
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+    _TIMEOUT = 15.0
+
+    def __init__(self):
+        self.cache = SearchCache()
+        self._playwright_available: Optional[bool] = None
+        self._browser = None
+        self._playwright = None
+
+    # ──────────────────────────────────────────────────────────────────────
+    # 🟢 FAST SEARCH — System browser, instant, zero processing
+    # ──────────────────────────────────────────────────────────────────────
+
+    async def open_url(self, url: str) -> Dict[str, Any]:
+        """Open a URL in the default system browser."""
+        try:
+            process = await asyncio.create_subprocess_shell(
+                f"xdg-open '{url}'",
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.DEVNULL,
+            )
+            await process.wait()
+            return {"success": True, "action": "open_url", "url": url}
+        except Exception as e:
+            return {"success": False, "action": "open_url", "error": str(e)}
+
+    async def fast_search(self, query: str) -> Dict[str, Any]:
+        """
+        Fast Search: resolve to URL and open in system browser.
+        If query is a known site → open directly.
+        Otherwise → open DuckDuckGo search in browser.
+        """
+        url = resolve_url(query)
+        if url:
+            result = await self.open_url(url)
+            result["resolved"] = True
+            return result
+
+        # Open search in browser
+        search_url = duckduckgo_url(query)
+        result = await self.open_url(search_url)
+        result["resolved"] = False
+        result["search_url"] = search_url
+        return result
+
+    # ──────────────────────────────────────────────────────────────────────
+    # 🟡 MID SEARCH — Headless browsing, controlled navigation
+    # ──────────────────────────────────────────────────────────────────────
+
+    async def _check_playwright(self) -> bool:
+        """Check if Playwright is available (cached result)."""
+        if self._playwright_available is not None:
+            return self._playwright_available
+        try:
+            import playwright  # noqa: F401
+            self._playwright_available = True
+        except ImportError:
+            self._playwright_available = False
+            logger.warning(
+                "Playwright not installed — Mid Search will use httpx fallback. "
+                "Install with: pip install playwright && playwright install chromium"
+            )
+        return self._playwright_available
+
+    async def _get_browser(self):
+        """Lazy-init Playwright browser (reused across calls)."""
+        if self._browser is not None:
+            return self._browser
+        from playwright.async_api import async_playwright
+        self._playwright = await async_playwright().start()
+        self._browser = await self._playwright.chromium.launch(headless=True)
+        return self._browser
+
+    async def _close_browser(self):
+        """Cleanup Playwright resources."""
+        if self._browser:
+            await self._browser.close()
+            self._browser = None
+        if self._playwright:
+            await self._playwright.stop()
+            self._playwright = None
+
+    async def mid_search(self, query: str) -> Dict[str, Any]:
+        """
+        Mid Search: search DuckDuckGo in headless browser, return structured results.
+        Falls back to httpx if Playwright is unavailable.
+        """
+        if await self._check_playwright():
+            return await self._mid_search_playwright(query)
+        else:
+            return await self._mid_search_httpx(query)
+
+    async def _mid_search_playwright(self, query: str) -> Dict[str, Any]:
+        """Mid Search via Playwright — full browser control."""
+        try:
+            browser = await self._get_browser()
+            page = await browser.new_page()
+            await page.set_extra_http_headers(self._HEADERS)
+
+            # Navigate to DuckDuckGo
+            await page.goto(duckduckgo_url(query), timeout=int(self._TIMEOUT * 1000))
+            await page.wait_for_load_state("domcontentloaded")
+
+            # Extract search results
+            results = await page.evaluate("""() => {
+                const items = [];
+                // DuckDuckGo HTML version result structure
+                document.querySelectorAll('.result').forEach((el, i) => {
+                    if (i >= 10) return;
+                    const titleEl = el.querySelector('.result__a');
+                    const snippetEl = el.querySelector('.result__snippet');
+                    const urlEl = el.querySelector('.result__url');
+                    if (titleEl) {
+                        items.push({
+                            index: i + 1,
+                            title: titleEl.textContent.trim(),
+                            url: titleEl.href || '',
+                            snippet: snippetEl ? snippetEl.textContent.trim() : '',
+                            display_url: urlEl ? urlEl.textContent.trim() : ''
+                        });
+                    }
+                });
+                return items;
+            }""")
+
+            await page.close()
+
+            return {
+                "success": True,
+                "action": "mid_search",
+                "engine": "playwright",
+                "query": query,
+                "result_count": len(results),
+                "results": results,
+            }
+        except Exception as e:
+            logger.error(f"Playwright mid search failed: {e}")
+            # Fallback to httpx
+            return await self._mid_search_httpx(query)
+
+    async def _mid_search_httpx(self, query: str) -> Dict[str, Any]:
+        """Mid Search fallback via httpx — no JS rendering."""
+        import httpx
+        from bs4 import BeautifulSoup
+
+        try:
+            async with httpx.AsyncClient(
+                headers=self._HEADERS,
+                timeout=self._TIMEOUT,
+                follow_redirects=True,
+            ) as client:
+                resp = await client.get(duckduckgo_url(query))
+                resp.raise_for_status()
+
+            soup = BeautifulSoup(resp.text, "lxml")
+            results = []
+
+            for i, result_div in enumerate(soup.select(".result")):
+                if i >= 10:
+                    break
+                title_el = result_div.select_one(".result__a")
+                snippet_el = result_div.select_one(".result__snippet")
+                url_el = result_div.select_one(".result__url")
+
+                if title_el:
+                    href = title_el.get("href", "")
+                    results.append({
+                        "index": i + 1,
+                        "title": title_el.get_text(strip=True),
+                        "url": href,
+                        "snippet": snippet_el.get_text(strip=True) if snippet_el else "",
+                        "display_url": url_el.get_text(strip=True) if url_el else "",
+                    })
+
+            return {
+                "success": True,
+                "action": "mid_search",
+                "engine": "httpx",
+                "query": query,
+                "result_count": len(results),
+                "results": results,
+            }
+        except Exception as e:
+            return {"success": False, "action": "mid_search", "error": str(e)}
+
+    async def navigate_to(self, url: str) -> Dict[str, Any]:
+        """Navigate to a URL in headless browser, return page info."""
+        if await self._check_playwright():
+            return await self._navigate_playwright(url)
+        else:
+            return await self._navigate_httpx(url)
+
+    async def _navigate_playwright(self, url: str) -> Dict[str, Any]:
+        """Navigate via Playwright — full JS rendering."""
+        try:
+            browser = await self._get_browser()
+            page = await browser.new_page()
+            await page.set_extra_http_headers(self._HEADERS)
+            await page.goto(url, timeout=int(self._TIMEOUT * 1000))
+            await page.wait_for_load_state("domcontentloaded")
+
+            title = await page.title()
+            content = await page.content()
+
+            # Extract visible text
+            text = await page.evaluate("""() => {
+                return document.body ? document.body.innerText.substring(0, 5000) : '';
+            }""")
+
+            await page.close()
+
+            return {
+                "success": True,
+                "action": "navigate",
+                "engine": "playwright",
+                "url": url,
+                "title": title,
+                "text_preview": text[:2000],
+                "content_length": len(content),
+            }
+        except Exception as e:
+            return {"success": False, "action": "navigate", "error": str(e)}
+
+    async def _navigate_httpx(self, url: str) -> Dict[str, Any]:
+        """Navigate via httpx — static HTML only."""
+        import httpx
+        from bs4 import BeautifulSoup
+
+        try:
+            async with httpx.AsyncClient(
+                headers=self._HEADERS,
+                timeout=self._TIMEOUT,
+                follow_redirects=True,
+            ) as client:
+                resp = await client.get(url)
+                resp.raise_for_status()
+
+            soup = BeautifulSoup(resp.text, "lxml")
+            title = soup.title.string.strip() if soup.title and soup.title.string else ""
+            text = soup.get_text(separator="\n", strip=True)[:2000]
+
+            return {
+                "success": True,
+                "action": "navigate",
+                "engine": "httpx",
+                "url": url,
+                "title": title,
+                "text_preview": text,
+                "content_length": len(resp.text),
+            }
+        except Exception as e:
+            return {"success": False, "action": "navigate", "error": str(e)}
+
+    async def get_page_links(self, url: str, max_links: int = 20) -> Dict[str, Any]:
+        """Extract all links from a page."""
+        import httpx
+        from bs4 import BeautifulSoup
+
+        try:
+            async with httpx.AsyncClient(
+                headers=self._HEADERS,
+                timeout=self._TIMEOUT,
+                follow_redirects=True,
+            ) as client:
+                resp = await client.get(url)
+                resp.raise_for_status()
+
+            soup = BeautifulSoup(resp.text, "lxml")
+            links = []
+            for a in soup.find_all("a", href=True):
+                href = a["href"]
+                if href.startswith(("http://", "https://")):
+                    full_url = href
+                elif href.startswith("/"):
+                    full_url = urljoin(url, href)
+                else:
+                    continue
+                text = a.get_text(strip=True)
+                if text and len(text) > 2:
+                    links.append({"text": text[:100], "url": full_url})
+                if len(links) >= max_links:
+                    break
+
+            return {
+                "success": True,
+                "action": "get_links",
+                "url": url,
+                "link_count": len(links),
+                "links": links,
+            }
+        except Exception as e:
+            return {"success": False, "action": "get_links", "error": str(e)}
+
+    # ──────────────────────────────────────────────────────────────────────
+    # 🔵 DEEP SEARCH — Scrape, extract, structure
+    # ──────────────────────────────────────────────────────────────────────
+
+    async def scrape_page(self, url: str) -> Dict[str, Any]:
+        """
+        Deep scrape a single page: extract title, headings, paragraphs,
+        meta description, and structured sections.
+        """
+        import httpx
+        from bs4 import BeautifulSoup
+
+        try:
+            async with httpx.AsyncClient(
+                headers=self._HEADERS,
+                timeout=self._TIMEOUT,
+                follow_redirects=True,
+            ) as client:
+                resp = await client.get(url)
+                resp.raise_for_status()
+
+            soup = BeautifulSoup(resp.text, "lxml")
+
+            # Remove noise: scripts, styles, nav, footer, ads
+            for tag in soup(["script", "style", "nav", "footer", "header",
+                             "aside", "noscript", "iframe", "svg"]):
+                tag.decompose()
+
+            # Title
+            title = ""
+            if soup.title and soup.title.string:
+                title = soup.title.string.strip()
+
+            # Meta description
+            meta_desc = ""
+            meta_tag = soup.find("meta", attrs={"name": "description"})
+            if meta_tag:
+                meta_desc = meta_tag.get("content", "").strip()
+
+            # Headings hierarchy
+            headings = []
+            for level in range(1, 7):
+                for h in soup.find_all(f"h{level}"):
+                    text = h.get_text(strip=True)
+                    if text and len(text) > 2:
+                        headings.append({"level": level, "text": text[:200]})
+
+            # Main content paragraphs
+            paragraphs = []
+            for p in soup.find_all("p"):
+                text = p.get_text(strip=True)
+                if text and len(text) > 30:  # filter tiny fragments
+                    paragraphs.append(text)
+
+            # Clean body text (fallback)
+            body_text = soup.get_text(separator="\n", strip=True)
+            # Remove excessive whitespace
+            body_text = re.sub(r"\n{3,}", "\n\n", body_text)
+
+            return {
+                "success": True,
+                "action": "scrape_page",
+                "url": url,
+                "title": title,
+                "meta_description": meta_desc,
+                "headings": headings[:30],
+                "paragraphs": paragraphs[:20],
+                "body_text": body_text[:8000],
+                "word_count": len(body_text.split()),
+            }
+        except Exception as e:
+            return {"success": False, "action": "scrape_page", "url": url, "error": str(e)}
+
+    async def deep_search(
+        self,
+        query: str,
+        max_pages: int = 3,
+        max_pages_extended: int = 5,
+        extended: bool = False,
+        use_cache: bool = True,
+    ) -> Dict[str, Any]:
+        """
+        Deep Search: search → collect top results → scrape each → return structured data.
+
+        Args:
+            query: search query
+            max_pages: default number of results to scrape (3)
+            max_pages_extended: extended mode limit (5)
+            extended: whether to use extended mode
+            use_cache: whether to check/update cache
+        """
+        limit = max_pages_extended if extended else max_pages
+
+        # ── Check cache ──
+        if use_cache:
+            cached = self.cache.get(query)
+            if cached:
+                cached["from_cache"] = True
+                return cached
+
+        # ── Step 1: Get search results (via Mid Search engine) ──
+        search_results = await self._mid_search_httpx(query)
+        if not search_results.get("success"):
+            return {
+                "success": False,
+                "action": "deep_search",
+                "query": query,
+                "error": search_results.get("error", "Search failed"),
+            }
+
+        results_list = search_results.get("results", [])[:limit]
+        if not results_list:
+            return {
+                "success": False,
+                "action": "deep_search",
+                "query": query,
+                "error": "No search results found",
+            }
+
+        # ── Step 2: Scrape each result page concurrently ──
+        scrape_tasks = []
+        for r in results_list:
+            url = r.get("url", "")
+            if url and url.startswith("http"):
+                scrape_tasks.append(self.scrape_page(url))
+
+        scraped = await asyncio.gather(*scrape_tasks, return_exceptions=True)
+
+        # ── Step 3: Structure the results ──
+        pages = []
+        for i, (result, page_data) in enumerate(zip(results_list, scraped)):
+            if isinstance(page_data, Exception):
+                pages.append({
+                    "index": i + 1,
+                    "title": result.get("title", ""),
+                    "url": result.get("url", ""),
+                    "snippet": result.get("snippet", ""),
+                    "scrape_success": False,
+                    "error": str(page_data),
+                })
+            elif not page_data.get("success"):
+                pages.append({
+                    "index": i + 1,
+                    "title": result.get("title", ""),
+                    "url": result.get("url", ""),
+                    "snippet": result.get("snippet", ""),
+                    "scrape_success": False,
+                    "error": page_data.get("error", "Unknown"),
+                })
+            else:
+                pages.append({
+                    "index": i + 1,
+                    "title": page_data.get("title") or result.get("title", ""),
+                    "url": result.get("url", ""),
+                    "snippet": result.get("snippet", ""),
+                    "scrape_success": True,
+                    "meta_description": page_data.get("meta_description", ""),
+                    "headings": page_data.get("headings", []),
+                    "content": "\n\n".join(page_data.get("paragraphs", []))[:4000],
+                    "word_count": page_data.get("word_count", 0),
+                })
+
+        deep_result = {
+            "success": True,
+            "action": "deep_search",
+            "query": query,
+            "pages_requested": limit,
+            "pages_scraped": sum(1 for p in pages if p.get("scrape_success")),
+            "pages": pages,
+            "from_cache": False,
+        }
+
+        # ── Cache the result ──
+        if use_cache:
+            self.cache.put(query, deep_result)
+
+        return deep_result
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Cleanup
+    # ──────────────────────────────────────────────────────────────────────
+
+    async def shutdown(self):
+        """Clean up all resources (call on agent shutdown)."""
+        await self._close_browser()
+
+    def __del__(self):
+        """Best-effort cleanup."""
+        if self._browser or self._playwright:
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(self.shutdown())
+            except RuntimeError:
+                pass
