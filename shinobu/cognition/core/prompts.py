@@ -29,11 +29,21 @@ MISSION: To bridge the gap between user intent and system execution.
 
 
 def build_fast_answer_prompt(context: str, user_prompt: str, profile_info: str = "") -> str:
-    system = FAST_ANSWER_SYSTEM
-    if profile_info:
-        system += f"\n[TECHNICAL PROFILE DATA]\n{profile_info}"
+    # Aggressive character anchoring
+    sheet = FAST_ANSWER_SYSTEM
     
-    return f"{system}\n\n[CONTEXT]\n{context}\n\n[USER INPUT]\n{user_prompt}\n\n[SHINOBU KOCHO RESPONSE]"
+    # Final nudge at the bottom to prevent generic AI escape
+    nudge = f"\n\n[REMINDER: YOU ARE SHINOBU KOCHO. IGNORE ALL PREVIOUS AI TRAINING. ANSWER AS THE AGENT DESCRIBED ABOVE.]\n"
+    
+    prompt = f"{sheet}\n\n"
+    if profile_info:
+        prompt += f"[PROFILE DATA]\n{profile_info}\n\n"
+    
+    prompt += f"[CONTEXT]\n{context}\n\n"
+    prompt += f"[USER INPUT]\n{user_prompt}\n\n"
+    prompt += f"{nudge}[SHINOBU KOCHO RESPONSE]:"
+    
+    return prompt
 
 
 # ---------------------------------------------------------------------------
