@@ -25,7 +25,11 @@ def _load_backbone() -> dict:
                     "pending_steps": [],
                     "failed_steps": []
                 },
-                "memory": {}
+                "memory": {},
+                "intent_logs": [],
+                "safety_events": [],
+                "session_context": {},
+                "automation_pipelines": []
             }
         try:
             with open(BACKBONE_FILE, "r", encoding="utf-8") as f:
@@ -45,7 +49,11 @@ def _load_backbone() -> dict:
                     "pending_steps": [],
                     "failed_steps": []
                 },
-                "memory": {}
+                "memory": {},
+                "intent_logs": [],
+                "safety_events": [],
+                "session_context": {},
+                "automation_pipelines": []
             }
 
 def _save_backbone(data: dict) -> None:
@@ -151,3 +159,34 @@ def set_memory_value(key: str, value: any) -> None:
 
 def get_memory_value(key: str, default: any = None) -> any:
     return _load_backbone().get("memory", {}).get(key, default)
+
+# --- User Operations Helpers (NEW) ---
+def log_intent(intent_data: dict) -> None:
+    """Persists the result of the IntentInterpreter brain."""
+    data = _load_backbone()
+    data.setdefault("intent_logs", []).append(
+        {**intent_data, "logged_at": datetime.now().isoformat()}
+    )
+    _save_backbone(data)
+
+def log_safety_event(tool: str, verdict: dict) -> None:
+    """Records when SafetyDecision blocks or flags an action."""
+    data = _load_backbone()
+    data.setdefault("safety_events", []).append({
+        "tool": tool, "verdict": verdict, "timestamp": datetime.now().isoformat()
+    })
+    _save_backbone(data)
+
+def update_session_context(key: str, value: any) -> None:
+    """Persists ContextMemory brain snapshots."""
+    data = _load_backbone()
+    data.setdefault("session_context", {})[key] = value
+    _save_backbone(data)
+
+def add_automation_pipeline(pipeline: dict) -> None:
+    """Logs a pipeline created by AutomationPipelineBuilder."""
+    data = _load_backbone()
+    data.setdefault("automation_pipelines", []).append(
+        {**pipeline, "created_at": datetime.now().isoformat()}
+    )
+    _save_backbone(data)
