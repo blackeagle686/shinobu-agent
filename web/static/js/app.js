@@ -322,6 +322,8 @@ document.addEventListener('DOMContentLoaded', () => {
     userInput.value = '';
     window.hasAddedMoreBtn = false;
     window.hasAddedFilePreview = false;
+    let detectedPreviewPath = '';
+    let detectedPreviewName = '';
 
     const typingDiv = showTyping();
     const live = createLivePanel();
@@ -375,14 +377,12 @@ document.addEventListener('DOMContentLoaded', () => {
               const isSearchResponse = agentText.includes('Search |') || agentText.includes('Search Results for:');
               
               // Detect file creation/update and add preview
-              if (agentText.includes('✅ File written:') || agentText.includes('✅ File updated:')) {
-                  const match = agentText.match(/(?:File written|File updated): (.*)/);
-                  if (match && !window.hasAddedFilePreview) {
-                      const filePath = match[1].trim();
-                      const fileName = filePath.split('/').pop();
-                      addFilePreview(typingDiv, filePath, fileName);
-                      window.hasAddedFilePreview = true;
-                  }
+              const previewMatch = agentText.match(/(?:✅\s*)?File (?:written|updated|edited):\s*([^\n\r]+)/i);
+              if (previewMatch && !window.hasAddedFilePreview) {
+                  detectedPreviewPath = previewMatch[1].trim().replace(/[`"'“”]/g, '');
+                  detectedPreviewName = detectedPreviewPath.split('/').pop() || 'generated_file';
+                  addFilePreview(typingDiv, detectedPreviewPath, detectedPreviewName);
+                  window.hasAddedFilePreview = true;
               }
 
               if (isSearchResponse && !window.hasAddedMoreBtn) {
@@ -412,6 +412,18 @@ document.addEventListener('DOMContentLoaded', () => {
         chatMessages.scrollTop = chatMessages.scrollHeight;
       }
       setLiveState(live, 'Completed');
+
+      // Fallback pass: ensure preview button/card appears if file output exists but
+      // didn't match during stream updates.
+      if (!window.hasAddedFilePreview) {
+        const fallbackMatch = agentText.match(/(?:✅\s*)?File (?:written|updated|edited):\s*([^\n\r]+)/i);
+        if (fallbackMatch) {
+          detectedPreviewPath = fallbackMatch[1].trim().replace(/[`"'“”]/g, '');
+          detectedPreviewName = detectedPreviewPath.split('/').pop() || 'generated_file';
+          addFilePreview(typingDiv, detectedPreviewPath, detectedPreviewName);
+          window.hasAddedFilePreview = true;
+        }
+      }
 
       // Finalize message with reply button
       const actions = document.createElement('div');
