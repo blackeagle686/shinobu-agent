@@ -56,7 +56,8 @@ class ActionPlanner:
             f"  If the content depends on a previous step, set content to \"{{PREV_RESULT}}\" as a placeholder.\n"
             f"- For searching files, use 'file_search_engine' with 'directory' and 'pattern'.\n"
             f"- Default file creation directory: '~/Downloads/shinobu/'.\n"
-            f"- Set 'depends_on' to the subtask_id this step needs output from (0 if independent).\n\n"
+            f"- Set 'depends_on' to the subtask_id this step needs output from (0 if independent).\n"
+            f"  Crucially, if a subtask has dependencies, set 'depends_on' to the ID of the subtask it depends on.\n\n"
             f"Return a JSON array: [{{{{'subtask_id': int, 'tool': str, 'args': dict, 'execution_order': int, 'depends_on': int}}}}]\n\n"
             f"Subtasks: {json.dumps(subtasks)}\n\nReturn JSON array only."
         )

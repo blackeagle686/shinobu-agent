@@ -353,6 +353,18 @@ async def execute_step(ctx, step, task, memory, session_id, prev_result="") -> t
             if tool_name == "llm_generate":
                 instruction = args.get("instruction", "")
                 extra_ctx = args.get("context", prev_result or "")
+                
+                # FALLBACK: If context is empty, try to find a file path in the instruction and read it
+                if not extra_ctx:
+                    found_files = re.findall(r'(/[^\s\'"]+|~/[^\s\'"]+)', instruction)
+                    if found_files:
+                        fpath = os.path.expanduser(found_files[0])
+                        if os.path.exists(fpath):
+                            try:
+                                with open(fpath, "r", encoding="utf-8") as f:
+                                    extra_ctx = f.read()
+                            except: pass
+
                 gen_prompt = f"You are Shinobu, a helpful assistant. {instruction}"
                 if extra_ctx:
                     gen_prompt += f"\n\nContext:\n{extra_ctx}"
@@ -458,6 +470,18 @@ async def stream_task_steps(ctx, task, task_id, memory, session_id, result: Step
                 if tool_name == "llm_generate":
                     instruction = args.get("instruction", "")
                     extra_ctx = args.get("context", prev_result or "")
+                    
+                    # FALLBACK: If context is empty, try to find a file path in the instruction and read it
+                    if not extra_ctx:
+                        found_files = re.findall(r'(/[^\s\'"]+|~/[^\s\'"]+)', instruction)
+                        if found_files:
+                            fpath = os.path.expanduser(found_files[0])
+                            if os.path.exists(fpath):
+                                try:
+                                    with open(fpath, "r", encoding="utf-8") as f:
+                                        extra_ctx = f.read()
+                                except: pass
+
                     gen_prompt = f"You are Shinobu, a helpful assistant. {instruction}"
                     if extra_ctx:
                         gen_prompt += f"\n\nContext:\n{extra_ctx}"
@@ -511,6 +535,7 @@ async def stream_task_steps(ctx, task, task_id, memory, session_id, result: Step
 
             if reflection["is_complete"]:
                 _mark_plan_step(sid, "done")
+                result.step_output = prev_result # Capture final output
                 yield {"type": "chunk", "role": "reflector", "content": f"    ↳ ✓ {reflection['reflection']}\n"}
             else:
                 yield {"type": "chunk", "role": "reflector", "content": f"    ↳ ⚠ Retry: {reflection['reflection']}\n"}
