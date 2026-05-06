@@ -417,7 +417,7 @@ class WebBrowserService:
         """Mid Search fallback via multiple engines (DDG -> Yahoo -> Google) — extremely reliable."""
         # ── Tier 1: DuckDuckGo Library ──
         try:
-            from duckduckgo_search import DDGS
+            from ddgs import DDGS
             results = []
             with DDGS(headers=self._HEADERS) as ddgs:
                 ddg_results = list(ddgs.text(query, max_results=10))
