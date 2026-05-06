@@ -352,6 +352,83 @@
     object-fit: cover;
 }
 
+/* ─── Deep Card (Source Card) ─── */
+.deep-card {
+    background: var(--bg-card);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xl);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: all 0.4s var(--ease-out-expo);
+    position: relative;
+    overflow: hidden;
+    animation: cardSlideIn 0.5s var(--ease-out-expo) both;
+}
+
+.deep-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--pink);
+    box-shadow: 0 12px 40px rgba(236, 72, 153, 0.15);
+}
+
+.deep-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+}
+
+.deep-card-badge {
+    padding: 0.25rem 0.6rem;
+    background: rgba(236, 72, 153, 0.1);
+    color: var(--pink-light);
+    border-radius: var(--radius-sm);
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.deep-card-relevance {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.deep-card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.4;
+    margin: 0;
+}
+
+.deep-card-url {
+    font-size: 0.72rem;
+    color: var(--mint);
+    font-family: 'JetBrains Mono', monospace;
+    opacity: 0.8;
+}
+
+.deep-card-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.deep-card-summary {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
 /* Favicons */
 .result-favicon-box {
     width: 32px;
