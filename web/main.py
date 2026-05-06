@@ -19,8 +19,9 @@ env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "
 load_dotenv(env_path)
 
 from Shinobu.shinobu.agent import get_shinobu_agent
+from Shinobu.shinobu.cognition.helpers.backbone import _load_backbone
 
-app = FastAPI(title="Shinobu Web UI")
+app = FastAPI(title="Shinobu Web Suite")
 
 # Mounting static files and templates
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -35,28 +36,42 @@ async def startup_event():
     global SHINOBU_AGENT
     print("🧠 Initializing Shinobu Agent...")
     SHINOBU_AGENT = await get_shinobu_agent()
-    # Pre-init LLM if needed
     if hasattr(SHINOBU_AGENT.thinker.llm, "init"):
-        try:
-            await SHINOBU_AGENT.thinker.llm.init()
-        except:
-            pass
+        try: await SHINOBU_AGENT.thinker.llm.init()
+        except: pass
     print("✅ Shinobu Agent Ready.")
 
+# ─────────────────── ROUTES ───────────────────
+
 @app.get("/", response_class=HTMLResponse)
-async def get_index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+async def get_landing(request: Request):
+    return templates.TemplateResponse("landing.html", {"request": request})
+
+@app.get("/chat", response_class=HTMLResponse)
+async def get_chat(request: Request):
+    return templates.TemplateResponse("chat.html", {"request": request})
+
+@app.get("/results", response_class=HTMLResponse)
+async def get_results(request: Request):
+    ctx = _load_backbone()
+    return templates.TemplateResponse("results.html", {"request": request, "context": ctx})
+
+@app.get("/analysis", response_class=HTMLResponse)
+async def get_analysis(request: Request):
+    ctx = _load_backbone()
+    return templates.TemplateResponse("analysis.html", {"request": request, "context": ctx})
+
+# ─────────────────── API ───────────────────
 
 class ChatRequest(BaseModel):
     prompt: str
     session_id: str
 
-@app.post("/chat")
+@app.post("/api/chat")
 async def chat_endpoint(req: ChatRequest):
     async def event_generator():
         try:
             async for event in SHINOBU_AGENT.run_stream(req.prompt, session_id=req.session_id):
-                # Convert event to SSE format
                 yield f"data: {json.dumps(event)}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'type': 'chunk', 'content': f'Error: {str(e)}'})}\n\n"
