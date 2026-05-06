@@ -484,7 +484,21 @@ a { color: inherit; text-decoration: none; }
 .empty-state .emoji { font-size: 5rem; margin-bottom: 1rem; filter: grayscale(0.3); }
 .empty-state p { color: var(--text-muted); font-size: 1.1rem; }
 
-/* ─── Reveal Animations ─── */
+/* ─── Chat Background ─── */
+.chat-bg {
+    position: absolute;
+    inset: 0;
+    background: url('../img/hero.jpg') center/cover no-repeat;
+    opacity: 0.12;
+    z-index: -1;
+    filter: saturate(1.5) blur(2px);
+    animation: chatBgBreath 20s ease-in-out infinite alternate;
+}
+
+@keyframes chatBgBreath {
+    from { transform: scale(1); }
+    to { transform: scale(1.1) rotate(1deg); }
+}
 .reveal {
     opacity: 0;
     transform: translateY(30px);
