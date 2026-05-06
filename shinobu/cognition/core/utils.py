@@ -283,15 +283,22 @@ async def ensure_plan_steps(ctx, task, task_id, intent_data=None) -> list:
         # But wait, action_planner outputs: [{"subtask_id": 1, "tool": "file_reader", "args": {...}}]
         # Let's wrap them into a plan step so the rest of the stream logic works.
         new_steps = []
+        order_to_plan_id = {}
+        for idx, a in enumerate(actions, start=1):
+            order_to_plan_id[int(a.get("execution_order", idx) or idx)] = idx
+
         for a in actions:
+            order = int(a.get("execution_order", 1) or 1)
+            depends_on_order = int(a.get("depends_on", 0) or 0)
+            dep = order_to_plan_id.get(depends_on_order)
             # Create a simple plan step that bypasses generator by specifying the exact tool
             new_steps.append({
-                "plan_step_id": a.get("execution_order", 1),
+                "plan_step_id": order,
                 "task_id": task_id,
                 "status": "pending",
                 "type": a.get("tool"),
                 "solution": {"approach": f"Use {a.get('tool')}"},
-                "dependencies": [],
+                "dependencies": [dep] if dep else [],
                 "direct_action": a  # We add this custom field to skip generator
             })
         
@@ -300,9 +307,15 @@ async def ensure_plan_steps(ctx, task, task_id, intent_data=None) -> list:
         existing_steps = existing.get("plan_steps", [])
         
         next_step_id = max([s.get("plan_step_id", 0) for s in existing_steps], default=0) + 1
+        temp_to_final = {}
         for s in new_steps:
+            old_id = s["plan_step_id"]
             s["plan_step_id"] = next_step_id
+            temp_to_final[old_id] = next_step_id
             next_step_id += 1
+        for s in new_steps:
+            s["dependencies"] = [temp_to_final.get(d, d) for d in s.get("dependencies", [])]
+        for s in new_steps:
             existing_steps.append(s)
             
         _save_plan({"plan_steps": existing_steps})
