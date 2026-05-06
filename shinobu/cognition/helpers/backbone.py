@@ -198,3 +198,11 @@ def set_last_result(result: str) -> None:
 
 def get_last_result() -> str:
     return _load_backbone().get("memory", {}).get("last_execution_result", "")
+
+def set_last_tool_result(result: str) -> None:
+    data = _load_backbone()
+    data["memory"]["last_tool_result"] = result
+    _save_backbone(data)
+
+def get_last_tool_result() -> str:
+    return _load_backbone().get("memory", {}).get("last_tool_result", "")
