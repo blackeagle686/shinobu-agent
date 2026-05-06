@@ -53,6 +53,11 @@
       "brain_name": "ux_generator",
       "description": "Generates user-friendly responses and explanations",
       "uses_llm": true
+    },
+    {
+      "brain_name": "search_classifier",
+      "description": "Classifies search intent into fast/mid/deep levels using rule-based heuristics and LLM fallback",
+      "uses_llm": true
     }
   ],
   "tools": [
