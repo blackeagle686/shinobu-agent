@@ -74,16 +74,19 @@ class ShinobuLoop(AgentLoop):
             return await fast_answer(ctx, prompt, memory, session_id)
 
         obj = await init_phase(ctx, prompt, memory, session_id, is_resume)
+        # init_phase can internally switch to resume mode when user is answering
+        # a previously asked question.
+        effective_resume = is_resume or obj.startswith("Resuming previous task list")
         intent_data = memory.session.get("intent_data", {})
         
         # Load last result if resuming
-        if is_resume:
+        if effective_resume:
             from .helpers.backbone import get_last_result
             prev_result = get_last_result()
         else:
             prev_result = ""
             
-        if not is_resume and intent_data.get("intent") == "communication":
+        if not effective_resume and intent_data.get("intent") == "communication":
             return await fast_answer(ctx, prompt, memory, session_id)
 
         await memory.add_interaction(session_id, "system", f"Task breakdown: {obj}")
@@ -155,17 +158,20 @@ class ShinobuLoop(AgentLoop):
         # Actually let's just let init_phase handle it and we retrieve intent_data from memory.
         # Wait, I didn't save intent_data to memory in init_phase! Let's do it right now in loop.py by passing intent_data manually or saving it.
         obj = await init_phase(ctx, prompt, memory, session_id, is_resume)
+        # init_phase can internally switch to resume mode when user is answering
+        # a previously asked question.
+        effective_resume = is_resume or obj.startswith("Resuming previous task list")
         intent_data = memory.session.get("intent_data", {})
         
         # Load last result if resuming
-        if is_resume:
+        if effective_resume:
             from .helpers.backbone import get_last_result
             prev_result = get_last_result()
         else:
             prev_result = ""
             
         # Fast path chat routing if intent is communication and not resuming
-        if not is_resume and intent_data.get("intent") == "communication":
+        if not effective_resume and intent_data.get("intent") == "communication":
             async for ev in fast_answer_stream(ctx, prompt, memory, session_id):
                 yield ev
             return
