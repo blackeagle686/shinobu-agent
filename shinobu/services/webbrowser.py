@@ -139,6 +139,29 @@ def duckduckgo_url(query: str) -> str:
     return f"https://html.duckduckgo.com/html/?q={quote_plus(query)}"
 
 
+def clean_ddg_url(url: str) -> str:
+    """
+    Extract the real target URL from a DuckDuckGo redirector link.
+    Example: //duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com -> https://example.com
+    """
+    if not url:
+        return ""
+    
+    # Handle protocol-relative URLs
+    if url.startswith("//"):
+        url = "https:" + url
+        
+    if "uddg=" in url:
+        from urllib.parse import unquote, urlparse, parse_qs
+        parsed = urlparse(url)
+        params = parse_qs(parsed.query)
+        uddg = params.get("uddg")
+        if uddg:
+            return unquote(uddg[0])
+            
+    return url
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # WebBrowserService
 # ─────────────────────────────────────────────────────────────────────────────
@@ -289,11 +312,12 @@ class WebBrowserService:
                     const snippetEl = el.querySelector('.result__snippet, .snippet, .result__body');
                     const urlEl = el.querySelector('.result__url, .url');
                     
-                    if (titleEl && titleEl.href && !titleEl.href.includes('duckduckgo.com/y.js')) {
+                    const rawUrl = titleEl.href;
+                    if (rawUrl && !rawUrl.includes('duckduckgo.com/y.js')) {
                         items.push({
                             index: items.length + 1,
                             title: titleEl.textContent.trim(),
-                            url: titleEl.href,
+                            url: rawUrl,
                             snippet: snippetEl ? snippetEl.textContent.trim() : '',
                             display_url: urlEl ? urlEl.textContent.trim() : ''
                         });
@@ -302,6 +326,16 @@ class WebBrowserService:
                 return items;
             }""")
 
+            # Step 2: Clean URLs and Deduplicate
+            seen_urls = set()
+            cleaned_results = []
+            for r in results:
+                real_url = clean_ddg_url(r["url"])
+                if real_url not in seen_urls:
+                    r["url"] = real_url
+                    cleaned_results.append(r)
+                    seen_urls.add(real_url)
+
             await page.close()
 
             return {
@@ -309,8 +343,8 @@ class WebBrowserService:
                 "action": "mid_search",
                 "engine": "playwright",
                 "query": query,
-                "result_count": len(results),
-                "results": results,
+                "result_count": len(cleaned_results),
+                "results": cleaned_results,
             }
         except Exception as e:
             logger.error(f"Playwright mid search failed: {e}")
@@ -333,7 +367,9 @@ class WebBrowserService:
 
             soup = BeautifulSoup(resp.text, "lxml")
             results = []
+            results_seen = set()
 
+            # Extract with resilient selectors
             for i, result_div in enumerate(soup.select(".result, .links_main, article")):
                 if len(results) >= 10:
                     break
@@ -342,15 +378,19 @@ class WebBrowserService:
                 url_el = result_div.select_one(".result__url, .url")
 
                 if title_el and title_el.get("href"):
-                    href = title_el.get("href")
-                    if "duckduckgo.com/y.js" in href: continue
-                    results.append({
-                        "index": len(results) + 1,
-                        "title": title_el.get_text(strip=True),
-                        "url": href,
-                        "snippet": snippet_el.get_text(strip=True) if snippet_el else "",
-                        "display_url": url_el.get_text(strip=True) if url_el else "",
-                    })
+                    raw_url = title_el.get("href")
+                    if "duckduckgo.com/y.js" in raw_url: continue
+                    
+                    real_url = clean_ddg_url(raw_url)
+                    if real_url and real_url not in results_seen:
+                        results.append({
+                            "index": len(results) + 1,
+                            "title": title_el.get_text(strip=True),
+                            "url": real_url,
+                            "snippet": snippet_el.get_text(strip=True) if snippet_el else "",
+                            "display_url": url_el.get_text(strip=True) if url_el else "",
+                        })
+                        results_seen.add(real_url)
 
             return {
                 "success": True,
