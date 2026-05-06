@@ -12,17 +12,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const sessionId = 'shinobu_' + Math.random().toString(36).substr(2, 8);
   if (sessionEl) sessionEl.textContent = sessionId;
 
-  let currentMode = 'agent_loop';
-  let replyingTo = null;
+  const modeSelector = document.getElementById('mode-selector');
+  let currentMode = modeSelector ? modeSelector.value : 'auto';
 
-  const modeBtns = document.querySelectorAll('.mode-btn');
-  modeBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-          modeBtns.forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          currentMode = btn.dataset.mode;
+  if (modeSelector) {
+      modeSelector.addEventListener('change', () => {
+          currentMode = modeSelector.value;
       });
-  });
+  }
+
+  let replyingTo = null;
 
   function timeNow() {
     return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
