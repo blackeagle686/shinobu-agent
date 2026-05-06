@@ -86,6 +86,17 @@
         </div>
     </template>
 
+    <div id="file-preview-modal" class="file-preview-modal" aria-hidden="true">
+        <div class="file-preview-modal-backdrop" id="file-preview-modal-backdrop"></div>
+        <div class="file-preview-modal-dialog" role="dialog" aria-modal="true" aria-label="File preview">
+            <div class="file-preview-modal-header">
+                <span id="file-preview-modal-title">File Preview</span>
+                <button id="file-preview-modal-close" class="file-preview-modal-close" type="button" aria-label="Close preview">×</button>
+            </div>
+            <div id="file-preview-modal-body" class="file-preview-modal-body"></div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="/static/js/app.js"></script>
 </body>
