@@ -5,10 +5,12 @@ import os
 # Add the Shinobu directory to sys.path so we can import it
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from shinobu.agent import get_shinobu_agent
-from phoenix.framework.agent.memory.hybrid import HybridMemory
+# Imports moved inside test_agent/main to ensure .env is loaded first
 
 async def test_agent():
+    from shinobu.agent import get_shinobu_agent
+    from phoenix.framework.agent.memory.hybrid import HybridMemory
+    
     print("Initializing agent...")
     agent = await get_shinobu_agent()
     print("Agent initialized.")
