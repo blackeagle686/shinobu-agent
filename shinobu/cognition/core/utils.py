@@ -258,7 +258,7 @@ async def init_phase(ctx, prompt, memory, session_id, is_resume) -> str:
     except Exception:
         pass
     try:
-        analysis = await asyncio.wait_for(analyze_task, timeout=5.0)
+        analysis = await asyncio.wait_for(analyze_task, timeout=ANALYZE_TIMEOUT)
         memory.session.set("project_analysis", analysis)
     except Exception:
         pass
@@ -271,8 +271,11 @@ async def init_phase(ctx, prompt, memory, session_id, is_resume) -> str:
 async def ensure_plan_steps(ctx, task, task_id, intent_data=None) -> list:
     steps = _get_pending_plan_steps(task_id)
     if not steps:
-        # Action Planner creates tool mappings
-        actions = await ctx["action_planner"].plan_actions([task], intent_data)
+        # Fast heuristic mapping first to avoid planner LLM round-trips.
+        actions = _heuristic_plan_actions(task)
+        if not actions:
+            # Fallback to Action Planner for complex/ambiguous tasks.
+            actions = await ctx["action_planner"].plan_actions([task], intent_data)
         
         # Convert ActionPlanner format to PlanSteps format for legacy compatibility, or just store actions.
         # But wait, action_planner outputs: [{"subtask_id": 1, "tool": "file_reader", "args": {...}}]
@@ -304,6 +307,48 @@ async def ensure_plan_steps(ctx, task, task_id, intent_data=None) -> list:
         steps = _get_pending_plan_steps(task_id)
         log_agent_action("action_planner", "plan_actions", {"task": task}, {"plan_steps": steps}, "success")
     return steps
+
+
+def _heuristic_plan_actions(task: dict) -> list:
+    """Fast deterministic tool mapping for common tasks."""
+    title = str(task.get("title", "")).lower()
+    desc = str(task.get("description", "")).lower()
+    task_id = task.get("id", 1)
+    text = f"{title} {desc}"
+    depends_on = task.get("dependencies", [0])[-1] if task.get("dependencies") else 0
+
+    if "ask user" in text or "prompt the user" in text:
+        q = task.get("description") or task.get("title") or "Please provide the required input."
+        return [{
+            "subtask_id": task_id,
+            "tool": "ask_user",
+            "args": {"question": q},
+            "execution_order": task_id,
+            "depends_on": depends_on,
+        }]
+
+    if "search the web" in text or ("search" in text and "web" in text):
+        query = task.get("description") or task.get("title")
+        return [{
+            "subtask_id": task_id,
+            "tool": "web_search_tool",
+            "args": {"query": query},
+            "execution_order": task_id,
+            "depends_on": depends_on,
+        }]
+
+    file_name = re.search(r"([a-zA-Z0-9_\-]+\.(?:txt|md|json|csv|py|js|ts|html|css))", f"{task.get('title','')} {task.get('description','')}")
+    if "create a file" in text or "write" in text or file_name:
+        name = file_name.group(1) if file_name else "output.txt"
+        return [{
+            "subtask_id": task_id,
+            "tool": "file_writer",
+            "args": {"path": f"~/Downloads/shinobu/{name}", "content": "{PREV_RESULT}"},
+            "execution_order": task_id,
+            "depends_on": depends_on,
+        }]
+
+    return []
 
 
 async def fast_answer(ctx, prompt, memory, session_id) -> str:
@@ -412,11 +457,15 @@ async def execute_step(ctx, step, task, memory, session_id, prev_result="") -> t
             total_cnt += len(actions)
             step_output = action_result
         approach = step.get("solution", {}).get("approach", "")
-        reflection = await ctx["reflector"].reflect(approach, {"actions": actions}, action_result)
-        log_agent_action("reflector", "reflect", {"approach": approach, "actions": actions, "result": action_result}, reflection, "success")
+        if SKIP_REFLECTION:
+            reflection = {"is_complete": executed, "reflection": "Fast path: reflection skipped."}
+        else:
+            reflection = await ctx["reflector"].reflect(approach, {"actions": actions}, action_result)
+            log_agent_action("reflector", "reflect", {"approach": approach, "actions": actions, "result": action_result}, reflection, "success")
         result_text += f"\nStep '{step.get('type')}' (attempt {attempt + 1}):\n  Result: {action_result}\n  Reflection: {reflection['reflection']}\n"
-        schedule_background(ctx["bg"], memory.add_interaction(
-            session_id, "system", f"Step: {step.get('type')} | Result: {action_result} | Reflection: {reflection['reflection']}"))
+        if not SKIP_STEP_MEMORY_LOG:
+            schedule_background(ctx["bg"], memory.add_interaction(
+                session_id, "system", f"Step: {step.get('type')} | Result: {action_result} | Reflection: {reflection['reflection']}"))
         if reflection["is_complete"]:
             return True, result_text, total_cnt, step_output
     return False, result_text, total_cnt, step_output
@@ -547,13 +596,17 @@ async def stream_task_steps(ctx, task, task_id, memory, session_id, result: Step
                 label = "⛔" if is_sensitive_action(actions) else "⚠"
                 yield {"type": "chunk", "role": "system", "content": f"    ↳ {label} {action_result}\n"}
 
-            reflection = await ctx["reflector"].reflect(approach, {"actions": actions}, action_result)
-            log_agent_action("reflector", "reflect",
-                             {"approach": approach, "actions": actions, "result": action_result}, reflection, "success")
+            if SKIP_REFLECTION:
+                reflection = {"is_complete": executed, "reflection": "Fast path: reflection skipped."}
+            else:
+                reflection = await ctx["reflector"].reflect(approach, {"actions": actions}, action_result)
+                log_agent_action("reflector", "reflect",
+                                 {"approach": approach, "actions": actions, "result": action_result}, reflection, "success")
             result.text += f"\nStep '{step.get('type')}':\nResult: {action_result}\nReflection: {reflection['reflection']}\n"
-            schedule_background(ctx["bg"], memory.add_interaction(
-                session_id, "system",
-                f"Step: {step.get('type')} | Result: {action_result} | Reflection: {reflection['reflection']}"))
+            if not SKIP_STEP_MEMORY_LOG:
+                schedule_background(ctx["bg"], memory.add_interaction(
+                    session_id, "system",
+                    f"Step: {step.get('type')} | Result: {action_result} | Reflection: {reflection['reflection']}"))
 
             if reflection["is_complete"]:
                 _mark_plan_step(sid, "done")
