@@ -66,12 +66,13 @@ async def get_analysis(request: Request):
 class ChatRequest(BaseModel):
     prompt: str
     session_id: str
+    mode: str = "agent_loop"
 
 @app.post("/api/chat")
 async def chat_endpoint(req: ChatRequest):
     async def event_generator():
         try:
-            async for event in SHINOBU_AGENT.run_stream(req.prompt, session_id=req.session_id):
+            async for event in SHINOBU_AGENT.run_stream(req.prompt, session_id=req.session_id, mode=req.mode):
                 yield f"data: {json.dumps(event)}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'type': 'chunk', 'content': f'Error: {str(e)}'})}\n\n"
