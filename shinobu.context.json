@@ -1,0 +1,83 @@
+{
+  "context_id": "2ef869b5-8dac-465e-ac3c-6801cfc24853",
+  "metadata": {
+    "created_at": "2026-05-06T16:06:00.038661",
+    "updated_at": "2026-05-06T16:06:04.715170",
+    "original_prompt": "Create a summary of the project architecture and save it as a text file in my Downloads/shinobu directory."
+  },
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Read project architecture details",
+      "description": "Gather information about the current project's architecture, including components, structure, dependencies, and design principles.",
+      "priority": 1,
+      "status": "pending"
+    },
+    {
+      "id": 2,
+      "title": "Summarize project architecture",
+      "description": "Condense the gathered architectural information into a clear, concise summary highlighting key aspects such as modules, data flow, technology stack, and scalability considerations.",
+      "priority": 1,
+      "status": "pending"
+    },
+    {
+      "id": 3,
+      "title": "Save summary to text file",
+      "description": "Write the generated summary into a new text file located at '~/Downloads/shinobu/summary.txt'.",
+      "priority": 1,
+      "status": "pending"
+    }
+  ],
+  "plans": [
+    {
+      "plan_step_id": 1,
+      "task_id": 1,
+      "status": "pending",
+      "type": "file_search_engine",
+      "solution": {
+        "approach": "Use file_search_engine"
+      },
+      "dependencies": [],
+      "direct_action": {
+        "subtask_id": 1,
+        "tool": "file_search_engine",
+        "args": {
+          "query": "project architecture details",
+          "directory": "~/Downloads/shinobu/",
+          "file_extensions": [
+            ".md",
+            ".txt",
+            ".json",
+            ".yaml",
+            ".yml"
+          ]
+        },
+        "execution_order": 1
+      }
+    }
+  ],
+  "generations": [],
+  "execution_state": {
+    "completed_steps": [],
+    "pending_steps": [
+      {
+        "id": 1,
+        "title": "Read project architecture details"
+      },
+      {
+        "id": 2,
+        "title": "Summarize project architecture"
+      },
+      {
+        "id": 3,
+        "title": "Save summary to text file"
+      }
+    ],
+    "failed_steps": []
+  },
+  "memory": {},
+  "intent_logs": [],
+  "safety_events": [],
+  "session_context": {},
+  "automation_pipelines": []
+}
