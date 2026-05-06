@@ -134,9 +134,11 @@ def resolve_url(query: str) -> Optional[str]:
     return KNOWN_SITES.get(key)
 
 
-def duckduckgo_url(query: str) -> str:
+def duckduckgo_url(query: str, lite: bool = True) -> str:
     """Build a DuckDuckGo search URL."""
-    return f"https://html.duckduckgo.com/html/?q={quote_plus(query)}"
+    if lite:
+        return f"https://html.duckduckgo.com/html/?q={quote_plus(query)}"
+    return f"https://duckduckgo.com/?q={quote_plus(query)}"
 
 
 def clean_ddg_url(url: str) -> str:
