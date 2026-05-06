@@ -86,6 +86,22 @@
     flex-shrink: 0;
 }
 
+.search-actions-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-right: 0.25rem;
+}
+
+.search-strategy-select {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid var(--glass-border) !important;
+    padding: 0.6rem 0.8rem !important;
+    min-width: 80px !important;
+    font-size: 0.8rem !important;
+    height: 42px;
+}
+
 .search-submit-btn:hover {
     transform: scale(1.05);
     box-shadow: 0 4px 20px var(--purple-glow);
@@ -95,90 +111,7 @@
     transform: scale(0.96);
 }
 
-/* ─── Level Selector ─── */
-.level-selector {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.75rem;
-    margin-top: 1rem;
-}
-
-.level-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 1rem 0.5rem;
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--glass-border);
-    background: var(--bg-card);
-    cursor: pointer;
-    transition: all 0.35s var(--ease-out-expo);
-    position: relative;
-    overflow: hidden;
-}
-
-.level-btn::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: var(--radius-lg);
-    opacity: 0;
-    transition: opacity 0.3s;
-}
-
-.level-btn:hover {
-    transform: translateY(-3px);
-    border-color: var(--glass-border-h);
-    background: var(--bg-card-hover);
-}
-
-.level-btn.active {
-    border-color: var(--purple);
-    background: rgba(124, 58, 237, 0.1);
-    box-shadow: 0 4px 20px rgba(124, 58, 237, 0.15);
-}
-
-.level-btn.active::after {
-    background: var(--grad-purple);
-    opacity: 0.05;
-}
-
-.level-btn[data-level="fast"].active {
-    border-color: var(--mint);
-    background: rgba(52, 211, 153, 0.08);
-    box-shadow: 0 4px 20px rgba(52, 211, 153, 0.15);
-}
-
-.level-btn[data-level="mid"].active {
-    border-color: #fbbf24;
-    background: rgba(251, 191, 36, 0.08);
-    box-shadow: 0 4px 20px rgba(251, 191, 36, 0.15);
-}
-
-.level-btn[data-level="deep"].active {
-    border-color: var(--pink);
-    background: rgba(244, 114, 182, 0.08);
-    box-shadow: 0 4px 20px rgba(244, 114, 182, 0.15);
-}
-
-.level-icon {
-    font-size: 1.5rem;
-    line-height: 1;
-}
-
-.level-label {
-    font-family: 'Outfit', sans-serif;
-    font-weight: 600;
-    font-size: 0.85rem;
-    color: var(--text);
-}
-
-.level-desc {
-    font-size: 0.65rem;
-    color: var(--text-muted);
-    letter-spacing: 0.5px;
-}
+/* Obsolete Level Selector Styles Removed */
 
 /* ─── Classification Badge ─── */
 .classification-bar {
