@@ -1,26 +1,52 @@
-<aside class="nav-bar">
+<aside class="nav-bar" id="main-nav">
     <div class="nav-brand">
         <div class="nav-brand-icon">🦋</div>
-        <h2>Shinobu OS</h2>
+        <h2 class="nav-text">Shinobu OS</h2>
+        <button class="nav-toggle" id="nav-toggle" title="Toggle Navigation">
+            <i class="bi bi-chevron-left"></i>
+        </button>
     </div>
     
     <a href="/" class="nav-link">
-        <i class="bi bi-house-door"></i> Overview
+        <i class="bi bi-house-door"></i> <span class="nav-text">Overview</span>
     </a>
     <a href="/chat" class="nav-link {% if request.url.path == '/chat' %}active{% endif %}">
-        <i class="bi bi-chat-dots"></i> Live Chat
+        <i class="bi bi-chat-dots"></i> <span class="nav-text">Live Chat</span>
     </a>
     <a href="/search" class="nav-link {% if request.url.path == '/search' %}active{% endif %}">
-        <i class="bi bi-search"></i> Search
+        <i class="bi bi-search"></i> <span class="nav-text">Search</span>
     </a>
     <a href="/results" class="nav-link {% if request.url.path == '/results' %}active{% endif %}">
-        <i class="bi bi-card-checklist"></i> Operation Cards
+        <i class="bi bi-card-checklist"></i> <span class="nav-text">Operation Cards</span>
     </a>
     <a href="/analysis" class="nav-link {% if request.url.path == '/analysis' %}active{% endif %}">
-        <i class="bi bi-graph-up"></i> Analytics
+        <i class="bi bi-graph-up"></i> <span class="nav-text">Analytics</span>
     </a>
     
     <div class="nav-session">
-        <p id="session-id">Session: LOADING</p>
+        <p id="session-id" class="nav-text">Session: LOADING</p>
     </div>
 </aside>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const nav = document.getElementById('main-nav');
+        const toggle = document.getElementById('nav-toggle');
+        const layouts = document.querySelectorAll('.dashboard-layout, .chat-layout');
+        
+        // Load state
+        const isCollapsed = localStorage.getItem('nav-collapsed') === 'true';
+        if (isCollapsed) {
+            nav.classList.add('collapsed');
+            layouts.forEach(l => l.classList.add('nav-collapsed-layout'));
+            toggle.querySelector('i').className = 'bi bi-chevron-right';
+        }
+
+        toggle.addEventListener('click', () => {
+            const collapsed = nav.classList.toggle('collapsed');
+            layouts.forEach(l => l.classList.toggle('nav-collapsed-layout'));
+            toggle.querySelector('i').className = collapsed ? 'bi bi-chevron-right' : 'bi bi-chevron-left';
+            localStorage.setItem('nav-collapsed', collapsed);
+        });
+    });
+</script>
