@@ -80,9 +80,46 @@ class SearchRequest(BaseModel):
 
 @app.post("/api/chat")
 async def chat_endpoint(req: ChatRequest):
+    # --- Auto Mode Logic ---
+    effective_mode = req.mode
+    if req.mode == "auto":
+        # Ask the agent's intent interpreter to decide
+        try:
+            intent_obj = await SHINOBU_AGENT.intent_interpreter.interpret(req.prompt)
+            intent = intent_obj.get("intent", "general")
+            
+            if intent == "web_search":
+                effective_mode = "search"
+            elif intent == "identity" or (intent == "general" and not intent_obj.get("multi_task")):
+                effective_mode = "fast_ans"
+            else:
+                effective_mode = "agent_loop"
+        except Exception:
+            effective_mode = "fast_ans"
+
+    # --- Mode Mapping ---
+    # Convert UI names to Agent Loop modes
+    if effective_mode == "chat": effective_mode = "fast_ans"
+    if effective_mode == "agent": effective_mode = "agent_loop"
+
     async def event_generator():
         try:
-            async for event in SHINOBU_AGENT.run_stream(req.prompt, session_id=req.session_id, mode=req.mode):
+            # Handle explicit search mode (fast mid-search)
+            if effective_mode == "search":
+                yield f"data: {json.dumps({'type': 'status', 'content': '🔍 Performing fast search...'})}\n\n"
+                browser = SHINOBU_AGENT.browser_service
+                res = await browser.mid_search(req.prompt)
+                if res.get("success"):
+                    ans = f"🟡 Mid Search | Found {len(res['results'])} results.\n\n"
+                    for r in res['results'][:3]:
+                        ans += f"- **[{r['title']}]({r['url']})**\n"
+                    ans += "\nSearch Complete. Redirecting..."
+                    yield f"data: {json.dumps({'type': 'chunk', 'content': ans})}\n\n"
+                else:
+                    yield f"data: {json.dumps({'type': 'chunk', 'content': 'Search failed.'})}\n\n"
+                return
+
+            async for event in SHINOBU_AGENT.run_stream(req.prompt, session_id=req.session_id, mode=effective_mode):
                 yield f"data: {json.dumps(event)}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'type': 'chunk', 'content': f'Error: {str(e)}'})}\n\n"
