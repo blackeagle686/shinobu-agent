@@ -15,15 +15,55 @@
     <div class="hero-overlay"></div>
     <div class="hero-content">
       <h1 class="hero-title">Shinobu</h1>
-      <p class="hero-subtitle">🦋 Your Personal OS Companion</p>
+      <p class="hero-subtitle">🦋 The Winged Interface of Hashira-OS</p>
       <div class="cta-group">
-        <a href="/chat" class="btn btn-primary">✨ Open Chat Interface</a>
-        <a href="/results" class="btn btn-glass">📋 View Results</a>
-        <a href="/analysis" class="btn btn-glass">📈 Analytics Dashboard</a>
+        <a href="/chat" class="btn btn-primary">✨ Enter Operation Chat</a>
+        <a href="/results" class="btn btn-glass">📊 Live Dashboards</a>
+      </div>
+      <div style="margin-top: 4rem; animation: fadeIn 2s ease-out both 1s;">
+          <p style="font-size: 0.8rem; letter-spacing: 2px; opacity: 0.5; text-transform: uppercase;">Scroll to discover features</p>
+          <div style="width: 1px; height: 50px; background: var(--grad-hero); margin: 1rem auto; opacity: 0.5;"></div>
       </div>
     </div>
   </section>
 
+  <section class="features" style="padding: 100px 2rem; max-width: 1200px; margin: 0 auto; position: relative; z-index: 10;">
+      <div class="card-grid">
+          <div class="result-card reveal">
+              <span class="card-tag tag-intent">Cognition</span>
+              <h3>Hybrid Brain Architecture</h3>
+              <p class="card-body">7 specialized cognitive engines working in harmony to interpret, plan, and execute your requests with human-like precision.</p>
+          </div>
+          <div class="result-card reveal">
+              <span class="card-tag tag-task">Control</span>
+              <h3>18 System Tools</h3>
+              <p class="card-body">From advanced file management to browser automation and system control—Shinobu has the tools for every operation.</p>
+          </div>
+          <div class="result-card reveal">
+              <span class="card-tag tag-done">Safety</span>
+              <h3>Zero-Trust Guardian</h3>
+              <p class="card-body">A strict safety-first approach with protected path logic and automated destructive action confirmation.</p>
+          </div>
+      </div>
+  </section>
+
+  <footer style="padding: 50px 2rem; text-align: center; border-top: 1px solid var(--glass-border); opacity: 0.4; font-size: 0.8rem; letter-spacing: 1px;">
+      HASHIRA-OS &copy; 2026 | SHINOBU USER OPERATIONS AGENT
+  </footer>
+
   <script src="/static/js/particles.js"></script>
+  <script>
+      // Scroll Reveal Animation
+      const observerOptions = { threshold: 0.1 };
+      const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+              if (entry.isIntersecting) {
+                  entry.target.classList.add('visible');
+              }
+          });
+      }, observerOptions);
+
+      document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  </script>
 </body>
 </html>
