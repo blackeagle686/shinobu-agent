@@ -18,6 +18,11 @@ from ..helpers.state import STATE_FILE, _init_state_from_tasks, _update_state, _
 from ..helpers.observability import log_agent_action
 from .prompts import build_fast_answer_prompt
 
+ULTRA_FAST_MODE = os.getenv("SHINOBU_ULTRA_FAST", "1").lower() in ("1", "true", "yes", "on")
+ANALYZE_TIMEOUT = float(os.getenv("SHINOBU_ANALYZE_TIMEOUT", "1.5"))
+SKIP_REFLECTION = os.getenv("SHINOBU_SKIP_REFLECTION", "1" if ULTRA_FAST_MODE else "0").lower() in ("1", "true", "yes", "on")
+SKIP_STEP_MEMORY_LOG = os.getenv("SHINOBU_SKIP_STEP_MEMORY_LOG", "1" if ULTRA_FAST_MODE else "0").lower() in ("1", "true", "yes", "on")
+
 
 # ---------------------------------------------------------------------------
 # Task queries
