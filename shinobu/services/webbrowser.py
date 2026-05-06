@@ -457,17 +457,68 @@ class WebBrowserService:
     # 🔵 DEEP SEARCH — Scrape, extract, structure
     # ──────────────────────────────────────────────────────────────────────
 
-    async def scrape_page(self, url: str) -> Dict[str, Any]:
+    async def scrape_page(self, url: str, use_playwright: bool = True) -> Dict[str, Any]:
         """
-        Deep scrape a single page: extract title, headings, paragraphs,
-        meta description, and structured sections.
+        Deep scrape a single page with high robustness.
+        Uses Playwright (if available) for JS rendering and better bot evasion,
+        falling back to httpx for static/fast cases or if Playwright fails.
         """
+        if use_playwright and await self._check_playwright():
+            result = await self._scrape_page_playwright(url)
+            if result.get("success"):
+                return result
+            logger.warning(f"Playwright scrape failed for {url}, falling back to httpx: {result.get('error')}")
+
+        return await self._scrape_page_httpx(url)
+
+    async def _scrape_page_playwright(self, url: str) -> Dict[str, Any]:
+        """Scrape via Playwright — handles JS and bypasses basic bot detection."""
+        try:
+            browser = await self._get_browser()
+            # Create context with realistic dimensions and user agent
+            context = await browser.new_context(
+                user_agent=self._HEADERS["User-Agent"],
+                viewport={"width": 1280, "height": 800},
+                extra_http_headers={"Referer": "https://www.google.com/"}
+            )
+            page = await context.new_page()
+            
+            # Navigate with a generous timeout and wait condition
+            response = await page.goto(url, timeout=int(self._TIMEOUT * 1500), wait_until="domcontentloaded")
+            
+            if not response or response.status >= 400:
+                await context.close()
+                return {"success": False, "error": f"HTTP {response.status if response else 'No Response'}"}
+
+            # Wait a bit for JS to settle (optional but helpful for some sites)
+            await asyncio.sleep(1.5)
+
+            title = await page.title()
+            content_html = await page.content()
+            
+            # Extract via BeautifulSoup from the rendered content
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(content_html, "lxml")
+            
+            scraped_data = self._process_soup(soup, url)
+            scraped_data["engine"] = "playwright"
+            
+            await context.close()
+            return scraped_data
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    async def _scrape_page_httpx(self, url: str) -> Dict[str, Any]:
+        """Scrape via httpx — fast but fails on JS-heavy or bot-protected sites."""
         import httpx
         from bs4 import BeautifulSoup
 
         try:
+            headers = self._HEADERS.copy()
+            headers["Referer"] = "https://www.google.com/"
+            
             async with httpx.AsyncClient(
-                headers=self._HEADERS,
+                headers=headers,
                 timeout=self._TIMEOUT,
                 follow_redirects=True,
             ) as client:
@@ -475,56 +526,64 @@ class WebBrowserService:
                 resp.raise_for_status()
 
             soup = BeautifulSoup(resp.text, "lxml")
+            scraped_data = self._process_soup(soup, url)
+            scraped_data["engine"] = "httpx"
+            return scraped_data
+        except Exception as e:
+            return {"success": False, "url": url, "error": str(e)}
 
-            # Remove noise: scripts, styles, nav, footer, ads
-            for tag in soup(["script", "style", "nav", "footer", "header",
-                             "aside", "noscript", "iframe", "svg"]):
-                tag.decompose()
+    def _process_soup(self, soup, url: str) -> Dict[str, Any]:
+        """Common logic to extract and clean content from BeautifulSoup."""
+        # Remove noise
+        for tag in soup(["script", "style", "nav", "footer", "header", 
+                         "aside", "noscript", "iframe", "svg", "ad", "form"]):
+            tag.decompose()
 
-            # Title
-            title = ""
-            if soup.title and soup.title.string:
-                title = soup.title.string.strip()
+        # Title
+        title = soup.title.string.strip() if soup.title and soup.title.string else ""
+        
+        # Meta description
+        meta_desc = ""
+        meta_tag = soup.find("meta", attrs={"name": "description"}) or \
+                   soup.find("meta", attrs={"property": "og:description"})
+        if meta_tag:
+            meta_desc = meta_tag.get("content", "").strip()
 
-            # Meta description
-            meta_desc = ""
-            meta_tag = soup.find("meta", attrs={"name": "description"})
-            if meta_tag:
-                meta_desc = meta_tag.get("content", "").strip()
+        # Headings
+        headings = []
+        for level in range(1, 4): # h1-h3 is usually enough for structure
+            for h in soup.find_all(f"h{level}"):
+                text = h.get_text(strip=True)
+                if text and len(text) > 3:
+                    headings.append({"level": level, "text": text[:200]})
 
-            # Headings hierarchy
-            headings = []
-            for level in range(1, 7):
-                for h in soup.find_all(f"h{level}"):
-                    text = h.get_text(strip=True)
-                    if text and len(text) > 2:
-                        headings.append({"level": level, "text": text[:200]})
-
-            # Main content paragraphs
-            paragraphs = []
-            for p in soup.find_all("p"):
+        # Smart Content Extraction
+        # Priority 1: Article/Main tags
+        main_content = soup.find("article") or soup.find("main") or soup.find("div", class_=re.compile(r"content|article|post|body", re.I))
+        target = main_content if main_content else soup.body
+        
+        paragraphs = []
+        if target:
+            for p in target.find_all(["p", "div", "li"]):
+                # Skip if nested too deep in non-content structures or if too short
                 text = p.get_text(strip=True)
-                if text and len(text) > 30:  # filter tiny fragments
+                if len(text) > 60: # More aggressive filtering for quality
                     paragraphs.append(text)
 
-            # Clean body text (fallback)
-            body_text = soup.get_text(separator="\n", strip=True)
-            # Remove excessive whitespace
-            body_text = re.sub(r"\n{3,}", "\n\n", body_text)
+        # Fallback: Body text
+        body_text = soup.get_text(separator="\n", strip=True)
+        body_text = re.sub(r"\n{3,}", "\n\n", body_text)
 
-            return {
-                "success": True,
-                "action": "scrape_page",
-                "url": url,
-                "title": title,
-                "meta_description": meta_desc,
-                "headings": headings[:30],
-                "paragraphs": paragraphs[:20],
-                "body_text": body_text[:8000],
-                "word_count": len(body_text.split()),
-            }
-        except Exception as e:
-            return {"success": False, "action": "scrape_page", "url": url, "error": str(e)}
+        return {
+            "success": True,
+            "url": url,
+            "title": title,
+            "meta_description": meta_desc,
+            "headings": headings[:30],
+            "paragraphs": paragraphs[:25],
+            "body_text": body_text[:10000], # Increased limit
+            "word_count": len(body_text.split()),
+        }
 
     async def deep_search(
         self,
