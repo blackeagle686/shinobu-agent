@@ -110,6 +110,10 @@ class ShinobuLoop(AgentLoop):
                     break
 
             finalize_task(tid, task, failed, summaries)
+            
+            # If the tool asked a question, we MUST stop the loop and wait for user input
+            if "QUESTION_TO_USER:" in prev_result:
+                break
 
         if is_all_done():
             cleanup_state_files()
@@ -188,6 +192,12 @@ class ShinobuLoop(AgentLoop):
             if sr.step_output:
                 prev_result = sr.step_output
             finalize_task(tid, task, sr.failed, summaries)
+
+            # If the tool asked a question, we MUST stop the loop and wait for user input
+            if "QUESTION_TO_USER:" in prev_result:
+                icon, msg = ("?", "Waiting for user input...")
+                yield {"type": "chunk", "role": "reflector", "content": f"  ↳ {icon} {msg}\n"}
+                break
 
             icon, msg = ("✗", "Task failed.") if sr.failed else ("✓", "Task complete.")
             yield {"type": "chunk", "role": "reflector", "content": f"  ↳ {icon} {msg}\n"}
