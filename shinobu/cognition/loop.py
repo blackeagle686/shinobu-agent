@@ -94,13 +94,16 @@ class ShinobuLoop(AgentLoop):
                 continue
 
             failed = False
+            prev_result = ""
             for step in steps:
                 sid = step.get("plan_step_id")
-                ok, txt, cnt = await execute_step(ctx, step, task, memory, session_id)
+                ok, txt, cnt, step_output = await execute_step(ctx, step, task, memory, session_id, prev_result=prev_result)
                 total += cnt
                 results += txt
                 if ok:
                     _mark_plan_step(sid, "done")
+                    if step_output:
+                        prev_result = step_output
                 else:
                     _mark_plan_step(sid, "failed")
                     failed = True
