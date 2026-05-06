@@ -331,7 +331,7 @@ Agent	Role
 
 
 Update UI:
- - in chat.html make user if typeing '@' 
+ - in chat.html make user if typeing '@' then show list of all the installed apps
 
 
 
