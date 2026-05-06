@@ -26,7 +26,7 @@ async def test_agent():
     session_id = "test_session"
     
     # User's request
-    prompt = "Create a summary of the project architecture and save it as a text file in my Downloads/shinobu directory."
+    prompt = "read this file in this path: Create a summary of the project architecture and save it as a text file in my Downloads/shinobu directory."
     print(f"\nUser Prompt: {prompt}")
     print("-" * 40)
     
