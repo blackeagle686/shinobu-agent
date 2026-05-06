@@ -1,5 +1,6 @@
 from phoenix.framework.agent.core.loop import AgentLoop
 import asyncio
+import os
 
 from .helpers.tasks import _load_tasks, _mark_task
 from .helpers.plan import _get_pending_plan_steps, _mark_plan_step
@@ -20,8 +21,8 @@ class ShinobuLoop(AgentLoop):
       IntentInterpreter → TaskDecomposer → ActionPlanner → SystemBridge (→ tools) → UXGenerator.
     """
 
-    MAX_RETRIES = 2
-    MAX_ACTIONS = 30
+    MAX_RETRIES = int(os.getenv("SHINOBU_MAX_RETRIES", "2"))
+    MAX_ACTIONS = int(os.getenv("SHINOBU_MAX_ACTIONS", "120"))
 
     def __init__(self, thinker, planner, actor, reflector, analyzer,
                  intent_interpreter=None, task_decomposer=None,
@@ -90,10 +91,12 @@ class ShinobuLoop(AgentLoop):
         results, summaries, total = "", [], 0
 
         while has_task_file() and total < self.MAX_ACTIONS:
-            pending = get_pending_tasks()
-            if not pending:
+            executable = get_executable_tasks()
+            if not executable:
+                if get_pending_tasks():
+                    summaries.append("⚠ Deadlock detected: pending tasks have unmet dependencies.")
                 break
-            task, tid = pending[0], pending[0].get("id")
+            task, tid = executable[0], executable[0].get("id")
 
             steps = await ensure_plan_steps(ctx, task, tid)
             if not steps:
