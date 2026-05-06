@@ -3,99 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shinobu Results | Operation Cards</title>
+    <title>Shinobu Results | Operation Hub</title>
     <link rel="stylesheet" href="/static/css/style.css">
-    <style>
-        .dashboard-layout {
-            display: grid;
-            grid-template-columns: 300px 1fr;
-            height: 100vh;
-        }
-        .content-area {
-            padding: 3rem;
-            overflow-y: auto;
-        }
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 2rem;
-            margin-top: 2rem;
-        }
-        .result-card {
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 1.5rem;
-            transition: transform 0.3s;
-        }
-        .result-card:hover {
-            transform: translateY(-5px);
-            border-color: var(--mint);
-        }
-        .card-tag {
-            font-size: 0.7rem;
-            padding: 0.2rem 0.6rem;
-            border-radius: 50px;
-            text-transform: uppercase;
-            font-weight: bold;
-            margin-bottom: 1rem;
-            display: inline-block;
-        }
-        .tag-search { background: rgba(80, 250, 123, 0.2); color: var(--mint); }
-        .tag-task { background: rgba(255, 121, 198, 0.2); color: var(--pink); }
-    </style>
 </head>
 <body>
+    <canvas id="particle-canvas"></canvas>
+
     <div class="dashboard-layout">
-        <nav class="sidebar glass-panel" style="margin: 1rem; border-radius: 20px;">
-            <div class="sidebar-header">
-                <h2 style="color: var(--mint);">Results Hub</h2>
+        <aside class="nav-bar">
+            <div class="nav-brand">
+                <div class="nav-brand-icon">S</div>
+                <h2>Shinobu OS</h2>
             </div>
-            <div style="padding: 1rem; display: flex; flex-direction: column; gap: 1rem;">
-                <a href="/" class="nav-link">🏠 Home</a>
-                <a href="/chat" class="nav-link">💬 Live Chat</a>
-                <a href="/results" class="nav-link active">📋 Results Card</a>
-                <a href="/analysis" class="nav-link">📈 Analysis</a>
+            
+            <a href="/" class="nav-link">🏠 Overview</a>
+            <a href="/chat" class="nav-link">💬 Live Chat</a>
+            <a href="/results" class="nav-link active">📋 Operation Cards</a>
+            <a href="/analysis" class="nav-link">📈 Analytics</a>
+            
+            <div class="nav-session">
+                <p>Status: Synchronized</p>
             </div>
-        </nav>
+        </aside>
 
         <main class="content-area">
-            <h1>Operation Result Cards</h1>
-            <p style="color: var(--text-muted);">Real-time tracking of search outputs and system tasks.</p>
+            <header class="page-header">
+                <h1>Operation Hub</h1>
+                <p>Live tracking of system results and intention logs.</p>
+            </header>
 
-            <div class="grid-container">
-                <!-- Example Intent Card -->
+            <div class="card-grid">
                 {% for log in context.intent_logs %}
                 <div class="result-card">
-                    <span class="card-tag tag-search">{{ log.intent }}</span>
-                    <h3 style="margin-bottom: 0.5rem;">{{ log.entities.topic or "System Task" }}</h3>
-                    <p style="font-size: 0.9rem; opacity: 0.8; margin-bottom: 1rem;">{{ log.raw_query }}</p>
-                    <div style="border-top: 1px solid var(--glass-border); padding-top: 1rem; font-size: 0.8rem; color: var(--mint);">
-                        Target: {{ log.entities.output_file or "General Session" }}
+                    <span class="card-tag tag-intent">{{ log.intent }}</span>
+                    <h3>{{ log.entities.topic or "Intention Log" }}</h3>
+                    <div class="card-body">{{ log.raw_query }}</div>
+                    <div class="card-footer">
+                        <span>Output: {{ log.entities.output_file or "Session" }}</span>
+                        <span>{{ log.logged_at[:16].replace('T', ' ') if log.logged_at else "" }}</span>
                     </div>
                 </div>
                 {% endfor %}
 
-                <!-- Task Cards -->
                 {% for task in context.tasks %}
                 <div class="result-card">
-                    <span class="card-tag tag-task">Task #{{ task.id }}</span>
-                    <h3 style="margin-bottom: 0.5rem;">{{ task.title }}</h3>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
-                        <span style="font-size: 0.8rem; color: {{ 'var(--mint)' if task.status == 'done' else 'var(--pink)' }}">{{ task.status.upper() }}</span>
-                        <span style="font-size: 0.7rem; opacity: 0.5;">Priority: {{ task.priority }}</span>
+                    <span class="card-tag {{ 'tag-done' if task.status == 'done' else 'tag-pending' }}">Task #{{ task.id }}</span>
+                    <h3>{{ task.title }}</h3>
+                    <div class="card-body">Status: {{ task.status.upper() }}</div>
+                    <div class="card-footer">
+                        <span>Priority: {{ task.priority }}</span>
+                        <span>Steps: {{ task.steps|length if task.steps else 0 }}</span>
                     </div>
                 </div>
                 {% endfor %}
 
                 {% if not context.intent_logs and not context.tasks %}
-                <div style="grid-column: 1/-1; text-align: center; padding: 5rem; opacity: 0.3;">
-                    <h2 style="font-size: 4rem;">🦋</h2>
-                    <p>No operation logs found in context. Initiate a chat to see cards.</p>
+                <div class="empty-state">
+                    <div class="emoji">🦋</div>
+                    <p>No operations logged yet. Initiate a request in the chat to see results here.</p>
                 </div>
                 {% endif %}
             </div>
         </main>
     </div>
+
+    <script src="/static/js/particles.js"></script>
 </body>
 </html>
