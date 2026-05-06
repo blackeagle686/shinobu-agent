@@ -592,7 +592,17 @@ class WebBrowserService:
 
     def _process_soup(self, soup, url: str) -> Dict[str, Any]:
         """Common logic to extract and clean content from BeautifulSoup."""
-        # Remove noise
+        # Find potential main image (OG image or first high-quality img)
+        og_image = soup.find("meta", attrs={"property": "og:image"}) or \
+                   soup.find("meta", attrs={"name": "twitter:image"})
+        main_image = og_image.get("content") if og_image else None
+        
+        if not main_image:
+            first_img = soup.find("img", attrs={"src": re.compile(r"http")})
+            if first_img:
+                main_image = first_img.get("src")
+
+        # Remove noise but KEEP img for potential inline rendering (though we summarize)
         for tag in soup(["script", "style", "nav", "footer", "header", 
                          "aside", "noscript", "iframe", "svg", "ad", "form"]):
             tag.decompose()
@@ -609,23 +619,22 @@ class WebBrowserService:
 
         # Headings
         headings = []
-        for level in range(1, 4): # h1-h3 is usually enough for structure
+        for level in range(1, 4):
             for h in soup.find_all(f"h{level}"):
                 text = h.get_text(strip=True)
                 if text and len(text) > 3:
                     headings.append({"level": level, "text": text[:200]})
 
         # Smart Content Extraction
-        # Priority 1: Article/Main tags
-        main_content = soup.find("article") or soup.find("main") or soup.find("div", class_=re.compile(r"content|article|post|body", re.I))
+        main_content = soup.find("article") or soup.find("main") or \
+                       soup.find("div", class_=re.compile(r"content|article|post|body", re.I))
         target = main_content if main_content else soup.body
         
         paragraphs = []
         if target:
             for p in target.find_all(["p", "div", "li"]):
-                # Skip if nested too deep in non-content structures or if too short
                 text = p.get_text(strip=True)
-                if len(text) > 60: # More aggressive filtering for quality
+                if len(text) > 60:
                     paragraphs.append(text)
 
         # Fallback: Body text
@@ -637,9 +646,10 @@ class WebBrowserService:
             "url": url,
             "title": title,
             "meta_description": meta_desc,
+            "main_image": main_image,
             "headings": headings[:30],
             "paragraphs": paragraphs[:25],
-            "body_text": body_text[:10000], # Increased limit
+            "body_text": body_text[:10000],
             "word_count": len(body_text.split()),
         }
 
