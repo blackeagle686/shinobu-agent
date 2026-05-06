@@ -198,11 +198,14 @@ def schedule_background(bg_tasks: set, coro):
 #                 actor, analyzer, llm, bg, retries)
 # ---------------------------------------------------------------------------
 
-def finalize_task(task_id, task, failed, summaries):
+def finalize_task(task_id, task, failed, summaries, result_output=None):
     """Mark task done/failed and append to summaries."""
     status = "failed" if failed else "done"
     _mark_task(task_id, status)
     _update_state(task_id, status, task.get("title"))
+    if result_output:
+        from ..helpers.backbone import set_last_result
+        set_last_result(result_output)
     summaries.append(f"{'✗' if failed else '✓'} [{task.get('priority')}] {task.get('title')}")
 
 
