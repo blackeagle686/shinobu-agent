@@ -496,7 +496,7 @@ a { color: inherit; text-decoration: none; }
     inset: 0;
     background: url('../img/hero.jpg') center/cover no-repeat;
     opacity: 0.08; /* Slightly more subtle */
-    z-index: 0;
+    z-index: -1;
     filter: saturate(1.1); 
     transform: translateZ(0); /* Force GPU */
     animation: chatBgBreath 60s linear infinite; /* Much slower, linear for efficiency */
