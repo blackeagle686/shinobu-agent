@@ -149,11 +149,16 @@ document.addEventListener('DOMContentLoaded', () => {
               typingDiv.querySelector('.content').innerHTML = renderedHtml;
 
               // Detect search completion and add "More Results" button
-              if (agentText.includes('Search |') && !window.hasAddedMoreBtn) {
+              const isSearchResponse = agentText.includes('Search |') || agentText.includes('Search Results for:');
+              if (isSearchResponse && !window.hasAddedMoreBtn) {
                 if (agentText.includes('Complete') || agentText.includes('Found')) {
                    window.hasAddedMoreBtn = true;
                    
-                   const queryMatch = agentText.match(/query: "(.*?)"/i) || agentText.match(/Searching for (.*?)\n/i);
+                   // Broad query extraction
+                   const queryMatch = agentText.match(/Search Results for: \*(.*?)\*/i) || 
+                                     agentText.match(/query: "(.*?)"/i) || 
+                                     agentText.match(/Searching for (.*?)\n/i);
+                   
                    const finalQuery = queryMatch ? queryMatch[1] : text;
                    
                    const btnContainer = document.createElement('div');
