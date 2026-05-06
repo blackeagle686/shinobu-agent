@@ -488,6 +488,44 @@
     color: var(--pink);
 }
 
+.intel-body pre {
+    background: rgba(0,0,0,0.3);
+    padding: 1.5rem;
+    border-radius: var(--radius-lg);
+    overflow-x: auto;
+    margin: 1.5rem 0;
+    border: 1px solid var(--glass-border);
+}
+
+.intel-body pre code {
+    background: none;
+    padding: 0;
+    color: var(--text-secondary);
+}
+
+.intel-body table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+}
+
+.intel-body th, .intel-body td {
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--glass-border);
+    text-align: left;
+}
+
+.intel-body th {
+    background: rgba(124, 58, 237, 0.1);
+    color: var(--purple-light);
+    font-weight: 700;
+}
+
+.intel-body tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.02);
+}
+
 /* Specific Recommendation Card Style */
 .intel-body .recommendation-list {
     display: grid;

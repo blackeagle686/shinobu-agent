@@ -138,7 +138,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Handle LLM Answer (Shinobu Intelligence Card)
             if (data.llm_answer) {
-                intelBody.innerHTML = simpleMarkdownToHtml(data.llm_answer);
+                if (window.marked) {
+                    intelBody.innerHTML = marked.parse(data.llm_answer);
+                } else {
+                    intelBody.innerHTML = simpleMarkdownToHtml(data.llm_answer);
+                }
                 intelCard.style.display = 'block';
             }
 
@@ -161,29 +165,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Helpers ──
     function simpleMarkdownToHtml(text) {
         if (!text) return '';
-        
-        let html = text
-            .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-            .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-            .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-            .replace(/^\> (.*$)/gim, '<blockquote>$1</blockquote>')
-            .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
-            .replace(/\*(.*)\*/gim, '<em>$1</em>')
-            .replace(/`(.*?)`/g, '<code>$1</code>')
-            .replace(/\n\n/g, '</p><p>')
-            .replace(/\n/g, '<br>');
-
-        // Convert lists
-        html = html.replace(/^\* (.*$)/gim, '<li>$1</li>');
-        html = html.replace(/<li>(.*?)<\/li>/gs, '<ul><li>$1</li></ul>');
-        html = html.replace(/<\/ul>\s*<ul>/g, '');
-
-        // Detect recommendation patterns and wrap in grid
-        if (html.includes('Recommendation') || html.includes('Finding')) {
-            // Simple check to add the grid class if multiple recommendations exist
-        }
-
-        return `<p>${html}</p>`;
+        // Fallback if marked is not loaded
+        return text.replace(/\n/g, '<br>');
     }
 
     // ── Classification Badge ──
