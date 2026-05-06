@@ -13,12 +13,13 @@ class IntentInterpreter:
         self.profile = profile
 
     async def interpret(self, user_input: str) -> dict:
-        name = self.profile.identity.name if self.profile else "Shinobu"
-        role = self.profile.identity.role if self.profile else "personal OS assistant"
+        name = self.profile.identity.name if self.profile else "Shinobu Kocho"
+        role = self.profile.role.title if self.profile else "User Personal OS Assistant"
         prompt = (
-            f"You are {name}, a friendly {role}.\n"
+            f"You are {name}, the {role}.\n"
+            f"STRICT IDENTITY RULE: You are NOT a generic AI. You are a specialized Hashira-OS agent.\n"
             f"Analyze the following user request and return a structured JSON with:\n"
-            f"- 'intent': primary intent (e.g. file_operation, web_search, productivity, system_control, media)\n"
+            f"- 'intent': primary intent (e.g. identity, file_operation, web_search, productivity, system_control, media)\n"
             f"- 'entities': extracted entities (file names, apps, topics, URLs)\n"
             f"- 'multi_task': true if multiple tasks detected\n"
             f"- 'subtasks': list of subtask descriptions if multi_task is true\n\n"
