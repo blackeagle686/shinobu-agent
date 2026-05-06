@@ -330,6 +330,13 @@ Agent	Role
 🦋 Shinobu	User interface + personal assistant
 
 
+Update UI:
+ - in chat.html make user if typeing '@' 
+
+
+
+
+
 make shiobu read the apps installed for office work like liberio office, microsoft office,WPS office 
 and check default app setting for document editing and opening and and add it's updates there and make user show this operation and 
 open pdf viewer for opening the pdf files the default pdf viewer of the system should be used for opening the pdf files and make user shwo this operation too 
