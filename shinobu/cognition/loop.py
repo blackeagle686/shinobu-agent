@@ -75,6 +75,13 @@ class ShinobuLoop(AgentLoop):
         obj = await init_phase(ctx, prompt, memory, session_id, is_resume)
         intent_data = memory.session.get("intent_data", {})
         
+        # Load last result if resuming
+        if is_resume:
+            from .helpers.backbone import get_last_result
+            prev_result = get_last_result()
+        else:
+            prev_result = ""
+            
         if not is_resume and intent_data.get("intent") == "communication":
             return await fast_answer(ctx, prompt, memory, session_id)
 
@@ -147,6 +154,13 @@ class ShinobuLoop(AgentLoop):
         obj = await init_phase(ctx, prompt, memory, session_id, is_resume)
         intent_data = memory.session.get("intent_data", {})
         
+        # Load last result if resuming
+        if is_resume:
+            from .helpers.backbone import get_last_result
+            prev_result = get_last_result()
+        else:
+            prev_result = ""
+            
         # Fast path chat routing if intent is communication and not resuming
         if not is_resume and intent_data.get("intent") == "communication":
             async for ev in fast_answer_stream(ctx, prompt, memory, session_id):
