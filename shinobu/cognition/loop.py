@@ -16,19 +16,27 @@ from .core.utils import (
 
 class ShinobuLoop(AgentLoop):
     """
-    Task-file driven agent loop:
-      Thinker → Planner → Generator → Actor.
+    Task-file driven agent loop with user-operations specialization:
+      IntentInterpreter → TaskDecomposer → ActionPlanner → SystemBridge (→ tools) → UXGenerator.
     """
 
     MAX_RETRIES = 2
     MAX_ACTIONS = 30
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if hasattr(self, "components") and "generator" in self.components:
-            self.generator = self.components["generator"]
-        else:
-            self.generator = ShinobuGenerator(self.planner.llm)
+    def __init__(self, thinker, planner, actor, reflector, analyzer,
+                 intent_interpreter=None, task_decomposer=None,
+                 action_planner=None, system_bridge=None,
+                 context_memory=None, safety_decision=None,
+                 ux_generator=None, generator=None):
+        super().__init__(thinker, planner, actor, reflector, analyzer)
+        self.intent_interpreter = intent_interpreter
+        self.task_decomposer = task_decomposer
+        self.action_planner = action_planner
+        self.system_bridge = system_bridge
+        self.context_memory = context_memory
+        self.safety_decision = safety_decision
+        self.ux_generator = ux_generator
+        self.generator = generator or ShinobuGenerator(self.planner.llm)
 
     @property
     def _ctx(self):
@@ -36,6 +44,13 @@ class ShinobuLoop(AgentLoop):
         return dict(
             thinker=self.thinker, planner=self.planner, generator=self.generator,
             reflector=self.reflector, actor=self.actor, analyzer=self.analyzer,
+            intent_interpreter=self.intent_interpreter,
+            task_decomposer=self.task_decomposer,
+            action_planner=self.action_planner,
+            system_bridge=self.system_bridge,
+            context_memory=self.context_memory,
+            safety_decision=self.safety_decision,
+            ux_generator=self.ux_generator,
             llm=self.planner.llm, bg=self._background_tasks, retries=self.MAX_RETRIES,
         )
 
