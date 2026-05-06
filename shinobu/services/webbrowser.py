@@ -284,12 +284,19 @@ class WebBrowserService:
     async def mid_search(self, query: str) -> Dict[str, Any]:
         """
         Mid Search: search DuckDuckGo in headless browser, return structured results.
-        Falls back to httpx if Playwright is unavailable.
+        Falls back to httpx if Playwright is unavailable or fails.
         """
         if await self._check_playwright():
-            return await self._mid_search_playwright(query)
-        else:
-            return await self._mid_search_httpx(query)
+            try:
+                res = await self._mid_search_playwright(query)
+                if res.get("success") and res.get("result_count", 0) > 0:
+                    return res
+                logger.warning(f"Playwright search returned 0 results or failed, falling back to httpx. Error: {res.get('error')}")
+            except Exception as e:
+                logger.error(f"Playwright execution error: {e}")
+        
+        # Fallback
+        return await self._mid_search_httpx(query)
 
     async def _mid_search_playwright(self, query: str) -> Dict[str, Any]:
         """Mid Search via Playwright — full browser control."""
