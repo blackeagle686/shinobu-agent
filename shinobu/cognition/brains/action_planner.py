@@ -15,7 +15,7 @@ TOOL_SIGNATURES = {
     "spreadsheet_manager": {"required": ["path"], "optional": ["data", "sheet_name"]},
     "system_command_bridge": {"required": ["command"], "optional": []},
     "web_search_tool":     {"required": ["query"], "optional": []},
-    "deep_search_tool":    {"required": ["query"], "optional": []},
+    "deep_search_tool":    {"required": ["topic"], "optional": ["extended"]},
     "browser_controller":  {"required": ["url"], "optional": ["action"]},
     "task_manager":        {"required": ["action"], "optional": ["title", "task_id"]},
     "reminder_system":     {"required": ["action", "message"], "optional": ["remind_at"]},
@@ -106,6 +106,11 @@ class ActionPlanner:
         for wrong, right in renames.items():
             if wrong in normalized and right not in normalized:
                 normalized[right] = normalized.pop(wrong)
+
+        # Tool-specific compatibility fixes
+        if tool == "deep_search_tool":
+            if "query" in normalized and "topic" not in normalized:
+                normalized["topic"] = normalized.pop("query")
 
         # Remove args the tool doesn't accept
         sig = TOOL_SIGNATURES[tool]
