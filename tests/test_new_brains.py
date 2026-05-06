@@ -6,7 +6,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from shinobu.agent import get_shinobu_agent
-from phoenix.memory.hybrid import HybridMemory
+from phoenix.framework.agent.memory.hybrid import HybridMemory
 
 async def test_agent():
     print("Initializing agent...")
