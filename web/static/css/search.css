@@ -352,6 +352,24 @@
     object-fit: cover;
 }
 
+/* Favicons */
+.result-favicon-box {
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+}
+
+.result-favicon {
+    width: 18px;
+    height: 18px;
+}
+
 .search-result-card {
     background: var(--bg-card);
     border: 1px solid var(--glass-border);
