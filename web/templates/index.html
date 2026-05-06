@@ -63,6 +63,12 @@
 
             <div class="chat-input-container">
                 <form id="chat-form" class="input-wrapper">
+                    <select id="mode-selector" class="mode-select-dropdown" style="background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: white; border-radius: 8px; padding: 5px; margin-right: 5px; outline: none;">
+                        <option value="auto" selected>🧠 Auto</option>
+                        <option value="search">🔍 Search</option>
+                        <option value="chat">💬 Chat</option>
+                        <option value="agent">🤖 Agent</option>
+                    </select>
                     <input type="text" id="user-input" placeholder="Type your request (e.g., 'Organize my desktop', 'Search for...')" autocomplete="off">
                     <button type="submit" id="send-btn">Send Pulse</button>
                 </form>

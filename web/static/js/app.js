@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     addMessage(displayPrompt.replace(/</g, '&lt;'), 'user');
     userInput.value = '';
-    window.hasRedirected = false;
+    window.hasAddedMoreBtn = false;
 
     const typingDiv = showTyping();
 
@@ -143,19 +143,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 contentStarted = true;
               }
               agentText += data.content;
-              typingDiv.querySelector('.content').innerHTML = agentText.replace(/\n/g, '<br>');
+              
+              // Render with Marked if available, else fallback
+              const renderedHtml = window.marked ? marked.parse(agentText) : agentText.replace(/\n/g, '<br>');
+              typingDiv.querySelector('.content').innerHTML = renderedHtml;
 
-              // Detect search completion and redirect
-              if (agentText.includes('Search |') && !window.hasRedirected) {
-                const searchMatch = agentText.match(/(?:Search \|).*?\n(.*)/i);
-                const queryMatch = agentText.match(/query: "(.*?)"/i) || agentText.match(/Searching for (.*?)\n/i);
-                
+              // Detect search completion and add "More Results" button
+              if (agentText.includes('Search |') && !window.hasAddedMoreBtn) {
                 if (agentText.includes('Complete') || agentText.includes('Found')) {
-                   window.hasRedirected = true;
-                   setTimeout(() => {
-                      const finalQuery = queryMatch ? queryMatch[1] : text;
-                      window.location.href = `/search?q=${encodeURIComponent(finalQuery)}`;
-                   }, 2500);
+                   window.hasAddedMoreBtn = true;
+                   
+                   const queryMatch = agentText.match(/query: "(.*?)"/i) || agentText.match(/Searching for (.*?)\n/i);
+                   const finalQuery = queryMatch ? queryMatch[1] : text;
+                   
+                   const btnContainer = document.createElement('div');
+                   btnContainer.style.marginTop = '1rem';
+                   btnContainer.innerHTML = `
+                     <a href="/search?q=${encodeURIComponent(finalQuery)}" class="more-results-btn">
+                        <span>🔍 View All Results in Search Hub</span>
+                     </a>
+                   `;
+                   typingDiv.querySelector('.content').appendChild(btnContainer);
                 }
               }
             }
