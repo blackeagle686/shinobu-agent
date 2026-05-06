@@ -5,6 +5,8 @@ Handles task querying, artifact mapping, safety, approval, and phase logic.
 import json
 import os
 import asyncio
+import re
+from functools import lru_cache
 
 from ..helpers.tasks import TASK_FILE, _load_tasks, _save_tasks, _mark_task, _reset_failed_tasks
 from ..helpers.plan import (
@@ -66,6 +68,7 @@ def has_task_file() -> bool:
 # Artifact → Action mapping
 # ---------------------------------------------------------------------------
 
+@lru_cache(maxsize=1)
 def _detect_vscode() -> bool:
     try:
         from shinobu.server import vscode_ipc_context
@@ -374,7 +377,8 @@ async def execute_step(ctx, step, task, memory, session_id, prev_result="") -> t
                         if os.path.exists(fpath):
                             try:
                                 with open(fpath, "r", encoding="utf-8") as f:
-                                    extra_ctx = f.read()
+                                    # Keep fallback context bounded so generation doesn't stall on huge files.
+                                    extra_ctx = f.read(12000)
                             except: pass
 
                 gen_prompt = f"You are Shinobu, a helpful assistant. {instruction}"
@@ -491,7 +495,8 @@ async def stream_task_steps(ctx, task, task_id, memory, session_id, result: Step
                             if os.path.exists(fpath):
                                 try:
                                     with open(fpath, "r", encoding="utf-8") as f:
-                                        extra_ctx = f.read()
+                                        # Keep fallback context bounded so generation doesn't stall on huge files.
+                                        extra_ctx = f.read(12000)
                                 except: pass
 
                     gen_prompt = f"You are Shinobu, a helpful assistant. {instruction}"
