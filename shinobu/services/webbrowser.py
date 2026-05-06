@@ -385,12 +385,17 @@ class WebBrowserService:
                     
                     real_url = clean_ddg_url(raw_url)
                     if real_url and real_url not in results_seen:
+                        from urllib.parse import urlparse
+                        domain = urlparse(real_url).netloc
+                        
                         results.append({
                             "index": len(results) + 1,
                             "title": title_el.get_text(strip=True),
                             "url": real_url,
                             "snippet": snippet_el.get_text(strip=True) if snippet_el else "",
                             "display_url": url_el.get_text(strip=True) if url_el else "",
+                            "favicon": f"https://www.google.com/s2/favicons?sz=64&domain_url={domain}",
+                            "image": None # Lite mode doesn't have thumbnails
                         })
                         results_seen.add(real_url)
 
