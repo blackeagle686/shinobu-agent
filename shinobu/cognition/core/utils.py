@@ -206,9 +206,19 @@ async def init_phase(ctx, prompt, memory, session_id, is_resume) -> str:
 
     _clear_state()
     analyze_task = asyncio.create_task(ctx["analyzer"].analyze_workspace(prompt))
-    objective = await ctx["thinker"].analyze(prompt, memory, session_id)
-    log_agent_action("thinker", "analyze_prompt", {"prompt": prompt}, objective, "success")
-
+    
+    # 1. Interpret Intent
+    intent_data = await ctx["intent_interpreter"].interpret(prompt)
+    log_agent_action("intent_interpreter", "interpret", {"prompt": prompt}, intent_data, "success")
+    
+    # 2. Decompose into tasks
+    subtasks = await ctx["task_decomposer"].decompose(prompt, intent_data)
+    log_agent_action("task_decomposer", "decompose", {"prompt": prompt, "intent": intent_data}, {"subtasks": subtasks}, "success")
+    
+    # 3. Save tasks to backbone
+    task_data = {"original_prompt": prompt, "tasks": subtasks}
+    _save_tasks(task_data)
+    
     try:
         _init_state_from_tasks(_load_tasks().get("tasks", []))
     except Exception:
@@ -219,16 +229,46 @@ async def init_phase(ctx, prompt, memory, session_id, is_resume) -> str:
     except Exception:
         pass
 
+    objective = f"Decomposed {len(subtasks)} tasks."
     memory.session.set("current_objective", objective)
     return objective
 
 
-async def ensure_plan_steps(ctx, task, task_id) -> list:
+async def ensure_plan_steps(ctx, task, task_id, intent_data=None) -> list:
     steps = _get_pending_plan_steps(task_id)
     if not steps:
-        await ctx["planner"].generate_plan_steps(task)
+        # Action Planner creates tool mappings
+        actions = await ctx["action_planner"].plan_actions([task], intent_data)
+        
+        # Convert ActionPlanner format to PlanSteps format for legacy compatibility, or just store actions.
+        # But wait, action_planner outputs: [{"subtask_id": 1, "tool": "file_reader", "args": {...}}]
+        # Let's wrap them into a plan step so the rest of the stream logic works.
+        new_steps = []
+        for a in actions:
+            # Create a simple plan step that bypasses generator by specifying the exact tool
+            new_steps.append({
+                "plan_step_id": a.get("execution_order", 1),
+                "task_id": task_id,
+                "status": "pending",
+                "type": a.get("tool"),
+                "solution": {"approach": f"Use {a.get('tool')}"},
+                "dependencies": [],
+                "direct_action": a  # We add this custom field to skip generator
+            })
+        
+        from ..helpers.plan import _save_plan, _load_plan
+        existing = _load_plan()
+        existing_steps = existing.get("plan_steps", [])
+        
+        next_step_id = max([s.get("plan_step_id", 0) for s in existing_steps], default=0) + 1
+        for s in new_steps:
+            s["plan_step_id"] = next_step_id
+            next_step_id += 1
+            existing_steps.append(s)
+            
+        _save_plan({"plan_steps": existing_steps})
         steps = _get_pending_plan_steps(task_id)
-        log_agent_action("planner", "generate_plan_steps", {"task": task}, {"plan_steps": steps}, "success")
+        log_agent_action("action_planner", "plan_actions", {"task": task}, {"plan_steps": steps}, "success")
     return steps
 
 
@@ -281,14 +321,20 @@ async def execute_step(ctx, step, task, memory, session_id) -> tuple[bool, str, 
     """Generate → execute → reflect for one step (non-streaming). Returns (ok, text, action_count)."""
     result_text, total_cnt = "", 0
     for attempt in range(ctx["retries"]):
-        gen = await ctx["generator"].generate_step(step, task)
-        blocks = gen.get("generation_blocks", [])
-        if any(b.get("status") == "syntax_error" for b in blocks):
-            txt, _ = await handle_syntax_error(ctx, step, task, blocks, memory, session_id, attempt)
-            result_text += txt
-            continue
-        log_agent_action("generator", "generate_step", {"step": step, "task": task}, gen, "success")
-        actions = map_artifacts_to_actions(blocks)
+        # Bypass Generator if direct_action exists
+        direct = step.get("direct_action")
+        if direct:
+            actions = [{"tool": direct.get("tool"), "kwargs": direct.get("args", {})}]
+        else:
+            gen = await ctx["generator"].generate_step(step, task)
+            blocks = gen.get("generation_blocks", [])
+            if any(b.get("status") == "syntax_error" for b in blocks):
+                txt, _ = await handle_syntax_error(ctx, step, task, blocks, memory, session_id, attempt)
+                result_text += txt
+                continue
+            log_agent_action("generator", "generate_step", {"step": step, "task": task}, gen, "success")
+            actions = map_artifacts_to_actions(blocks)
+
         if not actions:
             return True, result_text, total_cnt
         action_result, actions, executed = await validate_and_execute(ctx, actions)
@@ -318,12 +364,12 @@ class StepResult:
         self.action_count = 0
 
 
-async def stream_task_steps(ctx, task, task_id, memory, session_id, result: StepResult):
+async def stream_task_steps(ctx, task, task_id, memory, session_id, result: StepResult, intent_data=None):
     """Async generator: process all plan steps for a task, yielding stream events."""
     steps = _get_pending_plan_steps(task_id)
     if not steps:
-        yield {"type": "status", "role": "planner", "content": "  ↳ Generating Plan Steps..."}
-        steps = await ensure_plan_steps(ctx, task, task_id)
+        yield {"type": "status", "role": "planner", "content": "  ↳ Mapping actions..."}
+        steps = await ensure_plan_steps(ctx, task, task_id, intent_data)
     if not steps:
         _mark_task(task_id, "done")
         yield {"type": "chunk", "role": "planner", "content": "  ↳ No steps required.\n"}
@@ -349,8 +395,18 @@ async def stream_task_steps(ctx, task, task_id, memory, session_id, result: Step
             break
 
         yield {"type": "status", "role": "actor", "content": f"  ↳ Generating ({len(to_run)} steps)..."}
-        gen_results = await asyncio.gather(
-            *[ctx["generator"].generate_step(s, task) for s in to_run], return_exceptions=True)
+        
+        # Bypass Generator if direct_action exists
+        gen_results = []
+        for s in to_run:
+            if s.get("direct_action"):
+                gen_results.append({"direct_action": s.get("direct_action")})
+            else:
+                try:
+                    res = await ctx["generator"].generate_step(s, task)
+                    gen_results.append(res)
+                except Exception as e:
+                    gen_results.append(e)
 
         for step, gen in zip(to_run, gen_results):
             sid = step.get("plan_step_id")
@@ -360,16 +416,19 @@ async def stream_task_steps(ctx, task, task_id, memory, session_id, result: Step
             approach = step.get("solution", {}).get("approach", "")
             yield {"type": "chunk", "role": "planner",
                    "content": f"  ↳ Step {step.get('step_index', '?')} ({step.get('type')}): {approach[:60]}...\n"}
-            blocks = gen.get("generation_blocks", [])
+            
+            if "direct_action" in gen:
+                actions = [{"tool": gen["direct_action"].get("tool"), "kwargs": gen["direct_action"].get("args", {})}]
+            else:
+                blocks = gen.get("generation_blocks", [])
+                if any(b.get("status") == "syntax_error" for b in blocks):
+                    txt, ref = await handle_syntax_error(ctx, step, task, blocks, memory, session_id)
+                    result.text += txt
+                    yield {"type": "chunk", "role": "reflector", "content": f"    ↳ ⚠ Retry: {ref['reflection']}\n"}
+                    continue
+                log_agent_action("generator", "generate_step", {"step": step, "task": task}, gen, "success")
+                actions = map_artifacts_to_actions(blocks)
 
-            if any(b.get("status") == "syntax_error" for b in blocks):
-                txt, ref = await handle_syntax_error(ctx, step, task, blocks, memory, session_id)
-                result.text += txt
-                yield {"type": "chunk", "role": "reflector", "content": f"    ↳ ⚠ Retry: {ref['reflection']}\n"}
-                continue
-
-            log_agent_action("generator", "generate_step", {"step": step, "task": task}, gen, "success")
-            actions = map_artifacts_to_actions(blocks)
             if not actions:
                 _mark_plan_step(sid, "done")
                 yield {"type": "chunk", "role": "actor", "content": "    ↳ Done (No actions needed)\n"}
