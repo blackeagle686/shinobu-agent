@@ -71,7 +71,7 @@
 
   function init() {
     resize();
-    const count = Math.min(80, Math.floor(W * H / 15000));
+    const count = Math.min(60, Math.floor(W * H / 25000));
     particles = [];
     for (let i = 0; i < count; i++) particles.push(new Particle());
   }
