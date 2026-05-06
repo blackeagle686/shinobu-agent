@@ -65,7 +65,7 @@ async def get_shinobu_agent(on_startup_progress=None):
         TaskManagerTool, ReminderSystem, SpreadsheetManager, DocumentGenerator,
         ChatContextManager, ResponseFormatter,
         ProcessLauncher, SystemCommandBridge, AutomationPipelineBuilder,
-        SystemChecker, PDFViewer
+        SystemChecker, PDFViewer, AskUser
     )
 
     # Register all tools
@@ -99,6 +99,7 @@ async def get_shinobu_agent(on_startup_progress=None):
     agent.register_tool(AutomationPipelineBuilder())
     agent.register_tool(SystemChecker())
     agent.register_tool(PDFViewer())
+    agent.register_tool(AskUser())
 
     # Attach brains to agent for direct access
     agent.intent_interpreter   = agent.loop.intent_interpreter

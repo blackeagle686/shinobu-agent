@@ -21,6 +21,9 @@ TOOL_SIGNATURES = {
     "reminder_system":     {"required": ["action", "message"], "optional": ["remind_at"]},
     # Pseudo-tool: uses the LLM to generate text content
     "llm_generate":        {"required": ["instruction"], "optional": ["context"]},
+    "ask_user":            {"required": ["question"], "optional": []},
+    "system_checker":      {"required": [], "optional": ["action"]},
+    "pdf_viewer":          {"required": ["path"], "optional": []},
 }
 
 
