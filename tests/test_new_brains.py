@@ -3,7 +3,7 @@ import sys
 import os
 
 # Add the Shinobu directory to sys.path so we can import it
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../Shinobu')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from shinobu.agent import get_shinobu_agent
 from phoenix.memory.hybrid import HybridMemory
