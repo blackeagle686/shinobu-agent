@@ -19,11 +19,56 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const modeSelector = document.getElementById('mode-selector');
   let currentMode = modeSelector ? modeSelector.value : 'auto';
+  const agentLiveFeed = document.getElementById('agent-live-feed');
+  const agentLiveChip = document.getElementById('agent-live-chip');
+  const agentLiveClear = document.getElementById('agent-live-clear');
+  const MAX_LIVE_ITEMS = 80;
 
   if (modeSelector) {
       modeSelector.addEventListener('change', () => {
           currentMode = modeSelector.value;
       });
+  }
+
+  function setLiveState(state) {
+      if (!agentLiveChip) return;
+      agentLiveChip.textContent = state;
+  }
+
+  function clearLiveFeed() {
+      if (!agentLiveFeed) return;
+      agentLiveFeed.innerHTML = `
+          <div class="agent-live-empty">
+              Live LLM thinking, planning, and execution updates will appear here.
+          </div>
+      `;
+      setLiveState('Idle');
+  }
+
+  if (agentLiveClear) {
+      agentLiveClear.addEventListener('click', clearLiveFeed);
+  }
+
+  function pushLiveEvent(role, text) {
+      if (!agentLiveFeed || !text) return;
+      const empty = agentLiveFeed.querySelector('.agent-live-empty');
+      if (empty) empty.remove();
+
+      const line = document.createElement('div');
+      line.className = 'agent-live-item';
+      const safeRole = (role || 'system').toLowerCase();
+      line.innerHTML = `
+        <span class="agent-live-role ${safeRole}">${safeRole}</span>
+        <span class="agent-live-text"></span>
+        <span class="agent-live-time">${timeNow()}</span>
+      `;
+      line.querySelector('.agent-live-text').textContent = text.trim();
+      agentLiveFeed.appendChild(line);
+
+      while (agentLiveFeed.children.length > MAX_LIVE_ITEMS) {
+          agentLiveFeed.removeChild(agentLiveFeed.firstChild);
+      }
+      agentLiveFeed.scrollTop = agentLiveFeed.scrollHeight;
   }
 
   let replyingTo = null;
@@ -228,6 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.hasAddedFilePreview = false;
 
     const typingDiv = showTyping();
+    setLiveState('Running');
 
     try {
       const res = await fetch('/api/chat', {
@@ -251,7 +297,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = JSON.parse(line.substring(6));
             if (data.type === 'status') {
               typingDiv.innerHTML = `<span style="color:var(--mint);font-size:0.82rem;">🦋 ${data.content}</span>`;
+              pushLiveEvent(data.role || 'system', data.content || '');
             } else if (data.type === 'chunk') {
+              if (data.role) {
+                pushLiveEvent(data.role, data.content || '');
+              }
               if (!contentStarted) {
                 typingDiv.innerHTML = '<span class="content"></span>';
                 contentStarted = true;
@@ -302,6 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         chatMessages.scrollTop = chatMessages.scrollHeight;
       }
+      setLiveState('Completed');
 
       // Finalize message with reply button
       const actions = document.createElement('div');
@@ -321,6 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } catch (err) {
       typingDiv.innerHTML = `<span style="color:var(--pink-hot);">Connection error. Please try again.</span>`;
+      setLiveState('Error');
     }
   });
 });
