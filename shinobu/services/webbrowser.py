@@ -315,11 +315,14 @@ class WebBrowserService:
                     const urlEl = el.querySelector('.result__url, .url');
                     
                     const rawUrl = titleEl.href;
+                    const imgEl = el.querySelector('.tile--img__img, .result__icon__img, img');
+                    
                     if (rawUrl && !rawUrl.includes('duckduckgo.com/y.js')) {
                         items.push({
                             index: items.length + 1,
                             title: titleEl.textContent.trim(),
                             url: rawUrl,
+                            image: imgEl ? imgEl.src : null,
                             snippet: snippetEl ? snippetEl.textContent.trim() : '',
                             display_url: urlEl ? urlEl.textContent.trim() : ''
                         });
@@ -334,7 +337,10 @@ class WebBrowserService:
             for r in results:
                 real_url = clean_ddg_url(r["url"])
                 if real_url not in seen_urls:
+                    from urllib.parse import urlparse
+                    domain = urlparse(real_url).netloc
                     r["url"] = real_url
+                    r["favicon"] = f"https://www.google.com/s2/favicons?sz=64&domain_url={domain}"
                     cleaned_results.append(r)
                     seen_urls.add(real_url)
 
