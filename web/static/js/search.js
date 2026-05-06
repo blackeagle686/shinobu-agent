@@ -309,24 +309,35 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function createDeepCard(page, index) {
-        const card = document.createElement('div');
-        card.className = 'search-result-card';
-        card.style.animationDelay = `${index * 0.08}s`;
+        const div = document.createElement('div');
+        div.className = 'deep-card fade-in';
+        div.style.animationDelay = `${index * 0.15}s`;
 
-        const statusIcon = page.scrape_success ? '✅' : '❌';
-        const wordCount = page.word_count ? `${page.word_count} words` : '';
+        let imgHtml = '';
+        if (page.main_image) {
+            imgHtml = `<div class="deep-card-image"><img src="${page.main_image}" alt="Page Image" onerror="this.parentElement.style.display='none'"></div>`;
+        }
 
-        card.innerHTML = `
-            <div class="result-index">${index + 1}</div>
-            <div class="result-title">${statusIcon} ${escapeHtml(page.title || 'Untitled')}</div>
-            <div class="result-url">${escapeHtml(extractDomain(page.url || ''))}</div>
-            <div class="result-snippet">${escapeHtml(page.snippet || page.meta_description || '')}</div>
-            <div class="result-actions">
-                <button class="result-action-btn open-btn" onclick="window.open('${escapeAttr(page.url || '#')}', '_blank')">↗ Open</button>
-                ${wordCount ? `<span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto;">${wordCount}</span>` : ''}
-            </div>`;
+        const score = Math.round((page.word_count || 0) / 10) + (page.headings?.length || 0) * 2;
+        const relevance = Math.min(score, 98);
 
-        return card;
+        div.innerHTML = `
+            ${imgHtml}
+            <div class="deep-card-header">
+                <div class="deep-card-badge">Source ${index + 1}</div>
+                <div class="deep-card-relevance">Relevance: ${relevance}%</div>
+            </div>
+            <h4 class="deep-card-title">${escapeHtml(page.title || 'Untitled Source')}</h4>
+            <div class="deep-card-url">${escapeHtml(extractDomain(page.url || ''))}</div>
+            <div class="deep-card-meta">
+                <span>📝 ${page.word_count || 0} words</span>
+                <span>📑 ${page.headings?.length || 0} sections</span>
+            </div>
+            <div class="deep-card-summary">
+                ${escapeHtml(page.paragraphs?.[0] || page.meta_description || 'Analysis complete.')}
+            </div>
+        `;
+        return div;
     }
 
     // ── Helpers ──
