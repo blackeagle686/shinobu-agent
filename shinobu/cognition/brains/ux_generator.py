@@ -43,3 +43,22 @@ class UXGenerator:
             f"_{reason}_\n\n"
             f"If you believe this is an error, please clarify what you'd like me to do."
         )
+
+    async def generate_final_report(self, original_request: str, summaries: list, results_text: str) -> str:
+        """Generates a comprehensive final report after task completion."""
+        name = self.profile.identity.name if self.profile else "Shinobu"
+        tone = self.profile.personality.communication_tone if self.profile else "professional and efficient"
+        
+        summary_str = "\n".join(summaries)
+        
+        prompt = (
+            f"You are {name}, a {tone} personal OS assistant.\n"
+            f"User Objective: {original_request}\n\n"
+            f"Execution Logs:\n{results_text}\n\n"
+            f"Task Status:\n{summary_str}\n\n"
+            f"Provide a concise, high-level summary report for the user. "
+            f"Mention what was achieved, any files created (with paths), and if anything failed. "
+            f"Use a clear, structured format (e.g., Markdown headers or bullet points). "
+            f"Keep it professional and helpful."
+        )
+        return await self.llm.generate(prompt, session_id=None, max_tokens=500)
