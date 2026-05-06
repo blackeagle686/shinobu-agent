@@ -114,10 +114,10 @@ class ShinobuLoop(AgentLoop):
         if is_all_done():
             cleanup_state_files()
 
-        summary = "\n".join(summaries) or "No tasks were executed."
-        answer = f"**Shinobu Task Execution Complete**\n\n{summary}\n\n---\n{results.strip()}"
-        await memory.add_interaction(session_id, "assistant", answer)
-        return answer
+        # Generate Final Report
+        report = await ctx["ux_generator"].generate_final_report(prompt, summaries, results)
+        await memory.add_interaction(session_id, "assistant", report)
+        return report
 
     # ------------------------------------------------------------------
     # Streaming
@@ -196,7 +196,8 @@ class ShinobuLoop(AgentLoop):
             yield {"type": "status", "content": "🗑 Cleaning up..."}
             cleanup_state_files()
 
-        summary = "\n".join(summaries) or "No tasks were executed."
-        yield {"type": "chunk", "content": f"\n\n---\n**All tasks complete!**\n\n{summary}\n"}
-        await memory.add_interaction(session_id, "assistant",
-                                     f"Tasks complete:\n{summary}\n\n{results.strip()}")
+        # Final Report Phase
+        yield {"type": "status", "role": "thinker", "content": "📊 Generating final report..."}
+        report = await ctx["ux_generator"].generate_final_report(prompt, summaries, results)
+        yield {"type": "chunk", "role": "reflector", "content": f"\n\n{report}\n"}
+        await memory.add_interaction(session_id, "assistant", report)
