@@ -22,7 +22,12 @@ class TaskDecomposer:
             f"Break the following user request into an ordered list of logical subtasks.\n"
             f"Do NOT assign specific technical tools yet. Just describe the logical steps (e.g. 'Read file', 'Summarize content', 'Create PDF document').\n"
             f"If creating a new file without a specified path, default the location to '~/Downloads/shinobu/'.\n"
-            f"Each subtask should have: 'id' (int), 'title' (str), 'description' (str), 'priority' (int, 1=high).\n\n"
+            f"Each subtask should have:\n"
+            f"  - 'id': int\n"
+            f"  - 'title': str\n"
+            f"  - 'description': str\n"
+            f"  - 'priority': int (1=high)\n"
+            f"  - 'dependencies': list of IDs (e.g. [1] if it depends on task 1)\n\n"
             f"User: {user_input}\n\nReturn a JSON array of subtasks only."
         )
         

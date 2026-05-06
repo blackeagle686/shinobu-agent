@@ -81,6 +81,7 @@ class ShinobuLoop(AgentLoop):
         await memory.add_interaction(session_id, "system", f"Task breakdown: {obj}")
 
         results, summaries, total = "", [], 0
+        prev_result = "" # Result persists across tasks
 
         while has_task_file() and total < self.MAX_ACTIONS:
             pending = get_pending_tasks()
@@ -94,7 +95,6 @@ class ShinobuLoop(AgentLoop):
                 continue
 
             failed = False
-            prev_result = ""
             for step in steps:
                 sid = step.get("plan_step_id")
                 ok, txt, cnt, step_output = await execute_step(ctx, step, task, memory, session_id, prev_result=prev_result)
