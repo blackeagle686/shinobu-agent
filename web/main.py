@@ -45,21 +45,21 @@ async def startup_event():
 
 @app.get("/", response_class=HTMLResponse)
 async def get_landing(request: Request):
-    return templates.TemplateResponse("landing.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="landing.html")
 
 @app.get("/chat", response_class=HTMLResponse)
 async def get_chat(request: Request):
-    return templates.TemplateResponse("chat.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="chat.html")
 
 @app.get("/results", response_class=HTMLResponse)
 async def get_results(request: Request):
     ctx = _load_backbone()
-    return templates.TemplateResponse("results.html", {"request": request, "context": ctx})
+    return templates.TemplateResponse(request=request, name="results.html", context={"context": ctx})
 
 @app.get("/analysis", response_class=HTMLResponse)
 async def get_analysis(request: Request):
     ctx = _load_backbone()
-    return templates.TemplateResponse("analysis.html", {"request": request, "context": ctx})
+    return templates.TemplateResponse(request=request, name="analysis.html", context={"context": ctx})
 
 # ─────────────────── API ───────────────────
 
