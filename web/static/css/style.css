@@ -87,8 +87,8 @@ a { color: inherit; text-decoration: none; }
    ═══════════════════════════════════════════════════ */
 .glass-panel {
   background: var(--glass);
-  backdrop-filter: blur(24px) saturate(1.4);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  backdrop-filter: blur(12px) saturate(1.2);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
   box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04);
@@ -107,7 +107,7 @@ a { color: inherit; text-decoration: none; }
   border-right: 1px solid var(--glass-border);
   display: flex; flex-direction: column; gap: 0.5rem;
   background: var(--glass);
-  backdrop-filter: blur(30px);
+  backdrop-filter: none; /* Removed for performance */
 }
 
 .nav-brand {
