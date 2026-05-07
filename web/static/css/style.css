@@ -1217,26 +1217,60 @@ a {
 .chat-bg {
   position: absolute;
   inset: 0;
-  background: url('../img/hero.jpg') center/cover no-repeat;
-  opacity: 0.08;
+  background: var(--bg-secondary);
   z-index: -1;
-  transform: translateZ(0);
-  will-change: transform;
-  animation: chatBgBreath 60s linear infinite;
+  overflow: hidden;
 }
 
-@keyframes chatBgBreath {
-  0% {
-    transform: scale(1) translateZ(0);
-  }
+.glow-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  will-change: transform;
+  opacity: 0.15;
+  transform: translateZ(0);
+}
 
-  50% {
-    transform: scale(1.05) translateZ(0);
-  }
+.orb-1 {
+  width: 50vw;
+  height: 50vw;
+  background: var(--purple);
+  top: -20vh;
+  left: -10vw;
+  animation: floatOrb1 25s ease-in-out infinite alternate;
+}
 
-  100% {
-    transform: scale(1) translateZ(0);
-  }
+.orb-2 {
+  width: 45vw;
+  height: 45vw;
+  background: var(--pink);
+  bottom: -20vh;
+  right: -10vw;
+  animation: floatOrb2 30s ease-in-out infinite alternate;
+}
+
+.orb-3 {
+  width: 40vw;
+  height: 40vw;
+  background: var(--mint);
+  top: 30vh;
+  left: 20vw;
+  animation: floatOrb3 28s ease-in-out infinite alternate;
+}
+
+@keyframes floatOrb1 {
+  0% { transform: translate(0, 0) scale(1) translateZ(0); }
+  100% { transform: translate(15vw, 15vh) scale(1.1) translateZ(0); }
+}
+
+@keyframes floatOrb2 {
+  0% { transform: translate(0, 0) scale(1) translateZ(0); }
+  100% { transform: translate(-20vw, -10vh) scale(1.15) translateZ(0); }
+}
+
+@keyframes floatOrb3 {
+  0% { transform: translate(0, 0) scale(1) translateZ(0); }
+  100% { transform: translate(-10vw, 20vh) scale(1.2) translateZ(0); }
 }
 
 .reveal {
