@@ -70,18 +70,33 @@
     </footer>
 
     <script src="/static/js/particles.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
     <script>
         // Scroll Reveal Animation
-        const observerOptions = { threshold: 0.1 };
+        const observerOptions = { threshold: 0.1, rootMargin: "0px 0px -50px 0px" };
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
                 }
             });
         }, observerOptions);
 
         document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+        // 3D Tilt Effect for Cards
+        if (typeof VanillaTilt !== 'undefined') {
+            VanillaTilt.init(document.querySelectorAll(".result-card"), {
+                max: 8,
+                speed: 400,
+                glare: true,
+                "max-glare": 0.15,
+                scale: 1.02,
+                transition: true,
+                easing: "cubic-bezier(.03,.98,.52,.99)",
+            });
+        }
     </script>
 </body>
 
