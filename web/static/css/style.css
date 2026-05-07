@@ -184,7 +184,7 @@ a {
   z-index: 100;
   font-size: 0.8rem;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
 .nav-toggle:hover {
@@ -192,7 +192,8 @@ a {
   transform: scale(1.1);
 }
 
-.dashboard-layout, .chat-layout {
+.dashboard-layout,
+.chat-layout {
   display: grid;
   grid-template-columns: 280px 1fr;
   height: 100vh;
@@ -657,11 +658,25 @@ a {
   text-align: center;
 }
 
-.agent-live-role.thinker { background: rgba(124, 58, 237, 0.3); }
-.agent-live-role.planner { background: rgba(59, 130, 246, 0.28); }
-.agent-live-role.actor { background: rgba(16, 185, 129, 0.25); }
-.agent-live-role.reflector { background: rgba(236, 72, 153, 0.23); }
-.agent-live-role.system { background: rgba(148, 163, 184, 0.22); }
+.agent-live-role.thinker {
+  background: rgba(124, 58, 237, 0.3);
+}
+
+.agent-live-role.planner {
+  background: rgba(59, 130, 246, 0.28);
+}
+
+.agent-live-role.actor {
+  background: rgba(16, 185, 129, 0.25);
+}
+
+.agent-live-role.reflector {
+  background: rgba(236, 72, 153, 0.23);
+}
+
+.agent-live-role.system {
+  background: rgba(148, 163, 184, 0.22);
+}
 
 .agent-live-text {
   white-space: pre-wrap;
@@ -1217,60 +1232,26 @@ a {
 .chat-bg {
   position: absolute;
   inset: 0;
-  background: var(--bg-secondary);
+  background: url('../img/hero.jpg') center/cover no-repeat;
+  opacity: 0.08;
   z-index: -1;
-  overflow: hidden;
-}
-
-.glow-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(90px);
-  will-change: transform;
-  opacity: 0.15;
   transform: translateZ(0);
+  will-change: transform;
+  animation: chatBgBreath 60s linear infinite;
 }
 
-.orb-1 {
-  width: 50vw;
-  height: 50vw;
-  background: var(--purple);
-  top: -20vh;
-  left: -10vw;
-  animation: floatOrb1 25s ease-in-out infinite alternate;
-}
+@keyframes chatBgBreath {
+  0% {
+    transform: scale(1) translateZ(0);
+  }
 
-.orb-2 {
-  width: 45vw;
-  height: 45vw;
-  background: var(--pink);
-  bottom: -20vh;
-  right: -10vw;
-  animation: floatOrb2 30s ease-in-out infinite alternate;
-}
+  50% {
+    transform: scale(1.05) translateZ(0);
+  }
 
-.orb-3 {
-  width: 40vw;
-  height: 40vw;
-  background: var(--mint);
-  top: 30vh;
-  left: 20vw;
-  animation: floatOrb3 28s ease-in-out infinite alternate;
-}
-
-@keyframes floatOrb1 {
-  0% { transform: translate(0, 0) scale(1) translateZ(0); }
-  100% { transform: translate(15vw, 15vh) scale(1.1) translateZ(0); }
-}
-
-@keyframes floatOrb2 {
-  0% { transform: translate(0, 0) scale(1) translateZ(0); }
-  100% { transform: translate(-20vw, -10vh) scale(1.15) translateZ(0); }
-}
-
-@keyframes floatOrb3 {
-  0% { transform: translate(0, 0) scale(1) translateZ(0); }
-  100% { transform: translate(-10vw, 20vh) scale(1.2) translateZ(0); }
+  100% {
+    transform: scale(1) translateZ(0);
+  }
 }
 
 .reveal {
@@ -1480,7 +1461,7 @@ a {
   overflow-y: auto;
   z-index: 1000;
   margin-bottom: 0.5rem;
-  box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(15px);
 }
 
@@ -1491,7 +1472,7 @@ a {
   gap: 0.8rem;
   cursor: pointer;
   transition: background 0.2s;
-  border-bottom: 1px solid rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 .file-mention-item:hover {
@@ -1523,7 +1504,7 @@ a {
 
 .file-preview-header {
   padding: 0.8rem 1.2rem;
-  background: rgba(255,255,255,0.03);
+  background: rgba(255, 255, 255, 0.03);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1555,7 +1536,8 @@ a {
   justify-content: center;
 }
 
-.file-preview-body embed, .file-preview-body iframe {
+.file-preview-body embed,
+.file-preview-body iframe {
   width: 100%;
   height: 400px;
   border: none;
@@ -1571,7 +1553,7 @@ a {
   padding: 0.8rem 1.2rem;
   display: flex;
   gap: 0.8rem;
-  background: rgba(0,0,0,0.2);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .file-preview-actions button {
@@ -1595,7 +1577,8 @@ a {
   border: 1px solid var(--glass-border);
 }
 
-.open-file-btn:hover, .save-as-btn:hover {
+.open-file-btn:hover,
+.save-as-btn:hover {
   transform: translateY(-2px);
   filter: brightness(1.1);
 }
@@ -1680,6 +1663,7 @@ a {
   font-size: 0.82rem;
   color: #dbeafe;
 }
+
 /* ═══════════════════════════════════════════════════
    ANIMATIONS & REVEALS
    ═══════════════════════════════════════════════════ */
@@ -1697,16 +1681,35 @@ a {
 }
 
 /* Staggered delays for child cards */
-.card-grid .result-card:nth-child(1) { transition-delay: 0.1s; }
-.card-grid .result-card:nth-child(2) { transition-delay: 0.2s; }
-.card-grid .result-card:nth-child(3) { transition-delay: 0.3s; }
-.card-grid .result-card:nth-child(4) { transition-delay: 0.4s; }
+.card-grid .result-card:nth-child(1) {
+  transition-delay: 0.1s;
+}
+
+.card-grid .result-card:nth-child(2) {
+  transition-delay: 0.2s;
+}
+
+.card-grid .result-card:nth-child(3) {
+  transition-delay: 0.3s;
+}
+
+.card-grid .result-card:nth-child(4) {
+  transition-delay: 0.4s;
+}
 
 /* Floating animation for hero elements */
 @keyframes floatY {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-15px); }
-  100% { transform: translateY(0px); }
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-15px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
 }
 
 .hero-content {
