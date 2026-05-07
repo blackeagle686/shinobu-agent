@@ -4,8 +4,12 @@ Shinobu Backend — FastAPI application factory.
 import asyncio
 import os
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+# Load environment variables
+load_dotenv()
 
 from .state import log, get_agent, set_agent
 
